@@ -1,33 +1,45 @@
-# Demo project for GitHub
-# Author: Your Name
+from flask import Flask, render_template_string, request
 
-def tinh_tong(a, b):
-    return a + b
+app = Flask(__name__)
 
-def tinh_hieu(a, b):
-    return a - b
+# Danh sách sản phẩm mẫu
+products = [
+    {"id": 1, "name": "Áo thun", "price": 150000},
+    {"id": 2, "name": "Quần jean", "price": 300000},
+    {"id": 3, "name": "Giày thể thao", "price": 500000},
+]
 
-def menu():
-    print("=== Máy tính mini ===")
-    print("1. Tính tổng")
-    print("2. Tính hiệu")
-    print("0. Thoát")
+cart = []
 
-while True:
-    menu()
-    choice = input("Chọn chức năng: ")
+@app.route("/")
+def home():
+    html = """
+    <h1>Cửa hàng demo</h1>
+    <ul>
+    {% for p in products %}
+        <li>{{p.name}} - {{p.price}} VNĐ 
+            <a href="/add/{{p.id}}">Thêm vào giỏ</a>
+        </li>
+    {% endfor %}
+    </ul>
+    <h2>Giỏ hàng</h2>
+    <ul>
+    {% for item in cart %}
+        <li>{{item.name}} - {{item.price}} VNĐ</li>
+    {% endfor %}
+    </ul>
+    """
+    return render_template_string(html, products=products, cart=cart)
 
-    if choice == "1":
-        x = float(input("Nhập số thứ 1: "))
-        y = float(input("Nhập số thứ 2: "))
-        print("Kết quả:", tinh_tong(x, y))
-    elif choice == "2":
-        x = float(input("Nhập số thứ 1: "))
-        y = float(input("Nhập số thứ 2: "))
-        print("Kết quả:", tinh_hieu(x, y))
-    elif choice == "0":
-        print("Tạm biệt!")
-        break
-    else:
-        print("Lựa chọn không hợp lệ, thử lại nhé!")
+@app.route("/add/<int:product_id>")
+def add_to_cart(product_id):
+    product = next((p for p in products if p["id"] == product_id), None)
+    if product:
+        cart.append(product)
+    return home()
+
+if __name__ == "__main__":
+    app.run(debug=True)
+
+
 
