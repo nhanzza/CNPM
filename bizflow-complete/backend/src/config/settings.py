@@ -1,55 +1,121 @@
-"""Application configuration and settings"""
-import os
-from typing import List
-from pydantic_settings import BaseSettings
+"""AI/LLM integration services for natural language order processing"""
+from dataclasses import dataclass
+from typing import List, Dict
+
+@dataclass
+class AIConfig:
+    """AI configuration"""
+    openai_api_key: str = ""
+    google_api_key: str = ""
+    chroma_collection: str = "bizflow_products"
 
 
-class Settings(BaseSettings):
-    """Application settings"""
-    
-    # Application
-    APP_NAME: str = "BizFlow API"
-    APP_VERSION: str = "1.0.0"
-    APP_DESCRIPTION: str = "Nền tảng hỗ trợ chuyển đổi số cho hộ kinh doanh"
-    DEBUG: bool = os.getenv("DEBUG", "True").lower() == "true"
-    
-    # Server
-    HOST: str = os.getenv("HOST", "127.0.0.1")
-    PORT: int = int(os.getenv("PORT", "8000"))
-    
-    # Database
-    DATABASE_URL: str = os.getenv(
-        "DATABASE_URL",
-        "sqlite:///./test.db"
-    )
-    DATABASE_ECHO: bool = os.getenv("DATABASE_ECHO", "False").lower() == "true"
-    
-    # Redis
-    REDIS_URL: str = os.getenv("REDIS_URL", "redis://localhost:6379")
-    
-    # Security
-    SECRET_KEY: str = os.getenv("SECRET_KEY", "your-secret-key-change-in-production")
-    ALGORITHM: str = "HS256"
-    ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
-    REFRESH_TOKEN_EXPIRE_DAYS: int = 7
-    
-    # CORS
-    CORS_ORIGINS: List[str] = [
-        "http://localhost:3000",
-        "http://web:3000",
-        "http://localhost:8000",
-    ]
-    
-    # Environment
-    ENVIRONMENT: str = os.getenv("ENVIRONMENT", "development")
-    
-    # Logging
-    LOG_LEVEL: str = os.getenv("LOG_LEVEL", "INFO")
-    LOG_FORMAT: str = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
-    
-    class Config:
-        env_file = ".env"
-        case_sensitive = True
+class LLMService:
+    """Large Language Model service"""
+
+    def __init__(self, config: AIConfig):
+        self.config = config
+
+    async def extract_order_from_text(
+        self,
+        business_id: str,
+        text: str
+    ) -> Dict:
+        return {
+            "business_id": business_id,
+            "customer_name": "",
+            "items": [],
+            "confidence": 0.0
+        }
+
+    async def extract_order_from_voice(
+        self,
+        business_id: str,
+        audio_bytes: bytes
+    ) -> Dict:
+        text = await self.speech_to_text(audio_bytes)
+        return await self.extract_order_from_text(business_id, text)
+
+    async def speech_to_text(self, audio_bytes: bytes) -> str:
+        return ""
 
 
-settings = Settings()
+class RAGService:
+    """Retrieval-Augmented Generation service"""
+
+    def __init__(self, config: AIConfig):
+        self.config = config
+
+    async def retrieve_product_info(
+        self,
+        business_id: str,
+        query: str
+    ) -> List[Dict]:
+        return []
+
+    async def augment_prompt(
+        self,
+        business_id: str,
+        prompt: str
+    ) -> str:
+        _ = await self.retrieve_product_info(business_id, prompt)
+        return prompt
+
+
+class BookkeepingService:
+    """Automatic bookkeeping service (Circular 88/2021/TT-BTC)"""
+
+    async def record_sale(
+        self,
+        business_id: str,
+        order_id: str,
+        amount: float,
+        items: list
+    ) -> Dict:
+        return {
+            "business_id": business_id,
+            "record_type": "revenue",
+            "order_id": order_id,
+            "amount": amount,
+            "items": items
+        }
+
+    async def record_debt_transaction(
+        self,
+        business_id: str,
+        debt_id: str,
+        amount: float
+    ) -> Dict:
+        return {
+            "business_id": business_id,
+            "record_type": "debt",
+            "debt_id": debt_id,
+            "amount": amount
+        }
+
+    async def record_inventory_import(
+        self,
+        business_id: str,
+        product_id: str,
+        quantity: float
+    ) -> Dict:
+        return {
+            "business_id": business_id,
+            "record_type": "inventory_import",
+            "product_id": product_id,
+            "quantity": quantity
+        }
+
+    async def generate_accounting_report(
+        self,
+        business_id: str,
+        start_date,
+        end_date
+    ) -> Dict:
+        return {
+            "business_id": business_id,
+            "period": f"{start_date} to {end_date}",
+            "revenue_ledger": [],
+            "debt_ledger": [],
+            "inventory_ledger": []
+        }
