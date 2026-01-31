@@ -1,0 +1,73 @@
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: bizflow-postgres
+    environment:
+      POSTGRES_DB: bizflow
+      POSTGRES_USER: bizflow
+      POSTGRES_PASSWORD: bizflow123
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - bizflow-network
+
+  # Redis Cache
+  redis:
+    image: redis:7-alpine
+    container_name: bizflow-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - bizflow-network
+
+  # FastAPI Backend
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: bizflow-backend
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://bizflow:bizflow123@postgres:5432/bizflow
+      - REDIS_URL=redis://redis:6379
+      - SECRET_KEY=${SECRET_KEY:-your-secret-key-here-change-in-production}
+      - DEBUG=False
+      - BACKEND_CORS_ORIGINS=${BACKEND_CORS_ORIGINS:-["http://localhost:3000","http://web:3000"]}
+    depends_on:
+      - postgres
+      - redis
+    networks:
+      - bizflow-network
+    volumes:
+      - ./backend:/app
+
+  # Next.js Web Frontend
+  web:
+    build:
+      context: ./web
+      dockerfile: Dockerfile
+      args:
+        - NEXT_PUBLIC_API_URL=${API_URL:-http://localhost:8000/api}
+    container_name: bizflow-web
+    ports:
+      - "3000:3000"
+    environment:
+      - NEXT_PUBLIC_API_URL=${API_URL:-http://localhost:8000/api}
+    depends_on:
+      - backend
+    networks:
+      - bizflow-network
+
+volumes:
+  postgres_data:
+  redis_data:
+
+networks:
+  bizflow-network:
+    driver: bridge
