@@ -1,234 +1,188 @@
-# BizFlow Complete Project
+# BizFlow - Hệ thống Quản lý Hộ Kinh Doanh
 
-Nền tảng hỗ trợ chuyển đổi số cho hộ kinh doanh (Digital Transformation Platform for Household Businesses)
+**Digital Transformation Platform for Household Businesses**
 
-## Project Structure
+Nền tảng chuyển đổi số toàn diện cho hộ kinh doanh, hỗ trợ quản lý bán hàng, tồn kho, công nợ và kế toán tự động.
+
+---
+
+## Hướng dẫn Chạy nhanh
+
+### 1. Backend (FastAPI + Python)
+```bash
+cd bizflow-complete/backend
+pip install -r requirements.txt
+python -m uvicorn src.main:app --reload
+```
+✅ Truy cập: http://localhost:8000/docs
+
+### 2. Web Frontend (Next.js + React)
+```bash
+cd bizflow-complete/web
+npm install
+npm run dev
+```
+✅ Truy cập: http://localhost:3000
+
+---
+
+## Cấu trúc Dự án
 
 ```
 bizflow-complete/
 ├── backend/                    # Python FastAPI Backend
 │   ├── src/
-│   │   ├── domain/            # Business entities
-│   │   ├── application/       # Use cases & DTOs
-│   │   ├── infrastructure/    # Database & repositories
-│   │   ├── presentation/      # API routes
+│   │   ├── domain/            # Business entities & repositories
+│   │   ├── application/       # Use cases & business logic
+│   │   ├── infrastructure/    # Database & ORM models
+│   │   ├── presentation/      # API routes & validators
 │   │   ├── ai/               # AI/LLM services
-│   │   └── main.py           # FastAPI app
+│   │   └── main.py           # FastAPI application
 │   ├── tests/                # Unit & integration tests
-│   ├── scripts/              # Database utilities
-│   ├── requirements.txt      # Python dependencies
-│   ├── .env.example         # Environment template
-│   └── README.md            # Backend documentation
+│   ├── scripts/              # Database init & utilities
+│   └── requirements.txt      # Python dependencies
 │
-├── web/                       # Next.js Web Frontend
-│   ├── src/
-│   │   ├── app/             # Next.js pages
-│   │   ├── components/      # React components
-│   │   ├── hooks/           # Custom React hooks
-│   │   ├── lib/             # Utilities & store
-│   │   ├── services/        # API clients
-│   │   └── types/           # TypeScript types
-│   ├── public/              # Static files
-│   ├── package.json
-│   ├── tsconfig.json
-│   ├── next.config.ts
-│   └── README.md
-│
-└── mobile/                   # Flutter Mobile App
-    ├── lib/                 # Dart source code
-    ├── screens/            # App screens
-    ├── services/           # API & storage
-    ├── pubspec.yaml       # Flutter dependencies
-    └── README.md          # Mobile documentation
+└── web/                       # Next.js Web Frontend
+    ├── src/
+    │   ├── app/              # Next.js App Router (pages)
+    │   ├── components/       # React components (UI & providers)
+    │   ├── hooks/            # Custom React hooks
+    │   ├── services/         # API clients & services
+    │   ├── store/            # Zustand state management
+    │   └── types/            # TypeScript type definitions
+    ├── public/               # Static assets
+    └── package.json          # Node.js dependencies
 ```
 
-## Quick Start
+---
 
-### Backend Setup
-```bash
-cd backend
-pip install -r requirements.txt
-cp .env.example .env
-python scripts/init_db.py
-uvicorn src.main:app --reload
-```
+## Tính năng Chính
 
-### Web Frontend Setup
-```bash
-cd web
-npm install
-npm run dev
-```
+### Dành cho Nhân viên
+- ✅ Đăng nhập & xác thực
+- ✅ Tạo đơn hàng bán tại quầy
+- ✅ Quản lý công nợ khách hàng
+- ✅ In đơn hàng
+- ✅ Nhận thông báo đơn hàng từ AI
+- ✅ Xem và xác nhận đơn hàng AI
 
-### Mobile App Setup
-```bash
-cd mobile
-flutter pub get
-flutter run
-```
+### Dành cho Chủ hộ kinh doanh
+- ✅ Tất cả chức năng của nhân viên
+- ✅ Quản lý danh mục sản phẩm
+- ✅ Quản lý tồn kho (nhập/xuất)
+- ✅ Quản lý khách hàng
+- ✅ Xem báo cáo và phân tích
+- ✅ Quản lý tài khoản nhân viên
 
-## Features
+### Tính năng AI
+- ✅ Tạo đơn hàng từ ngôn ngữ tự nhiên
+- ✅ Chuyển giọng nói thành văn bản
+- ✅ Tự động hoàn thành với RAG
+- ✅ Tìm kiếm sản phẩm thông minh
 
-### For Employees
-- ✅ Fast at-counter orders
-- ✅ Customer debt management
-- ✅ Order printing
-- ✅ Real-time notifications
-- ✅ AI-generated draft order confirmation
+### Kế toán Tự động
+- ✅ Ghi sổ tự động
+- ✅ Báo cáo thuế (Thông tư 88/2021/TT-BTC)
+- ✅ Phân tích tài chính
+- ✅ Theo dõi công nợ
 
-### For Owners
-- ✅ All employee features
-- ✅ Product catalog management
-- ✅ Inventory management
-- ✅ Customer management
-- ✅ Business analytics & reports
-- ✅ Employee account management
-
-### For Admins
-- ✅ Owner account management
-- ✅ Subscription management
-- ✅ Platform analytics
-- ✅ System configuration
-
-### AI Features
-- ✅ Natural language order creation
-- ✅ Voice-to-text order processing
-- ✅ Auto-completion with RAG
-- ✅ Smart product search
-
-### Accounting
-- ✅ Automatic bookkeeping
-- ✅ Tax report generation (Circular 88/2021/TT-BTC)
-- ✅ Financial analytics
-- ✅ Debt tracking
-
-## Technology Stack
+---
+## 🛠️ Công nghệ Sử dụng
 
 ### Backend
 - **Framework**: FastAPI
-- **Database**: PostgreSQL, MySQL
-- **Cache**: Redis
-- **Auth**: JWT
+- **Database**: SQLite (demo), PostgreSQL/MySQL (production)
 - **ORM**: SQLAlchemy
-- **AI**: OpenAI/Gemini + ChromaDB
-- **Speech**: Google Speech-to-Text, Whisper
-- **Task Queue**: Celery
+- **Authentication**: JWT (python-jose)
+- **AI/LLM**: OpenAI API, Google Gemini
+- **Vector DB**: ChromaDB (RAG)
+- **Speech-to-Text**: Google Speech API, Whisper
+- **Validation**: Pydantic
 
 ### Web Frontend
-- **Framework**: Next.js 16
+- **Framework**: Next.js 14 (App Router)
+- **UI Library**: React 18
+- **Language**: TypeScript
 - **State Management**: Zustand
-- **Data Fetching**: TanStack Query
-- **Forms**: React Hook Form
-- **UI**: Tailwind CSS
-- **Charts**: Chart.js
+- **Styling**: Tailwind CSS
 - **HTTP Client**: Axios
+- **Charts**: Chart.js, Recharts
+- **Forms**: React Hook Form
 
-### Mobile
-- **Framework**: Flutter 3
-- **State Management**: GetX
-- **Local Storage**: Hive
-- **HTTP Client**: Dio
-- **Notifications**: Firebase Cloud Messaging
+---
 
-## API Documentation
+## Tài liệu API
 
-- **Swagger UI**: `http://localhost:8000/docs`
-- **ReDoc**: `http://localhost:8000/redoc`
+- **Swagger UI**: http://localhost:8000/docs (Interactive API docs)
+- **ReDoc**: http://localhost:8000/redoc (API documentation)
 
-## Environment Variables
+### Các endpoint chính:
+- `POST /api/auth/login` - Đăng nhập
+- `POST /api/auth/register` - Đăng ký chủ hộ
+- `GET /api/products` - Lấy danh sách sản phẩm
+- `POST /api/products` - Thêm sản phẩm mới
+- `GET /api/orders` - Lấy danh sách đơn hàng
+- `POST /api/orders` - Tạo đơn hàng mới
+- `GET /api/customers` - Lấy danh sách khách hàng
+- `POST /api/inventory/import` - Nhập hàng
+
+---
+
+## Cấu hình
 
 ### Backend (.env)
 ```env
-DATABASE_URL=postgresql+asyncpg://user:password@localhost/bizflow
-REDIS_URL=redis://localhost:6379
-SECRET_KEY=your-secret-key
+DATABASE_URL=sqlite:///./bizflow.db
+JWT_SECRET_KEY=your-super-secret-key-change-this
+ACCESS_TOKEN_EXPIRE_MINUTES=30
 OPENAI_API_KEY=your-openai-key
-GOOGLE_API_KEY=your-google-api-key
+ENVIRONMENT=development
 ```
 
 ### Web Frontend (.env.local)
 ```env
 NEXT_PUBLIC_API_URL=http://localhost:8000/api
+NEXT_PUBLIC_APP_NAME=BizFlow
 ```
+
+---
 
 ## Testing
 
-### Backend
+### Backend Tests
 ```bash
 cd backend
 pytest tests/ -v
 ```
 
-### Web Frontend
+### Web Tests
 ```bash
 cd web
 npm test
 ```
 
-## Deployment
+---
 
-### Docker
-```bash
-docker-compose up
-```
-
-### Production
-- Backend: Deployed on AWS EC2 / Azure VM
-- Frontend: Deployed on Vercel
-- Mobile: Published on Google Play Store & Apple App Store
-
-## Documentation
-
-- [Requirements Document](docs/requirements.md)
-- [System Architecture](docs/architecture.md)
-- [API Specification](docs/api.md)
-- [Database Schema](docs/database.md)
-- [Deployment Guide](docs/deployment.md)
-
-## Contributing
-
-1. Fork the repository
-2. Create feature branch: `git checkout -b feature/amazing-feature`
-3. Commit changes: `git commit -m 'Add amazing feature'`
-4. Push to branch: `git push origin feature/amazing-feature`
-5. Open Pull Request
-
-## License
-
-MIT License - See LICENSE file for details
-
-## Team
-
-- **Product Owner**: [Name]
-- **Backend Lead**: [Name]
-- **Frontend Lead**: [Name]
-- **Mobile Lead**: [Name]
-
-## Contact
-
-- Email: contact@bizflow.vn
-- Website: https://bizflow.vn
-- Support: support@bizflow.vn
-
-## Changelog
-
-### v1.0.0 (2026-01-15)
-- Initial release
-- Employee and Owner modules
-- AI order generation
-- Automatic bookkeeping
-- Basic analytics
+## Ghi chú Phiên bản
 
 ### v1.0-checkpoint-diagrams-complete (2026-01-22)
-- Restored stable checkpoint version due to accumulated code errors
-- Fixed API endpoint routing (changed from `/api/v2` to `/api`)
-- Implemented optimistic updates with localStorage persistence
-- Added inventory import feature with CRUD operations
-- Fixed input field zero-prefix bug
-- Added bilingual (EN/VI) support for all alert messages
-- Enhanced chart color visibility and synchronization
-- Cleaned up TypeScript compilation warnings
+- ✅ Khôi phục phiên bản ổn định
+- ✅ Sửa routing API (`/api/v2` → `/api`)
+- ✅ Cập nhật lạc quan với localStorage
+- ✅ Thêm chức năng nhập hàng (CRUD)
+- ✅ Sửa lỗi input bị prefix số 0
+- ✅ Hỗ trợ song ngữ (EN/VI) cho alerts
+- ✅ Cải thiện màu sắc và đồng bộ charts
+- ✅ Dọn dẹp TypeScript warnings
 
 ---
 
-**Last Updated**: January 22, 2026
+## Liên hệ & Hỗ trợ
+
+**Dự án môn học**: Công nghệ Phần mềm (CNPM)  
+**Trường**: [Tên trường]  
+**Năm học**: 2025-2026
+
+---
+
+**Cập nhật lần cuối**: 31/01/2026
