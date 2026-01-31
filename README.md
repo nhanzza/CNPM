@@ -159,30 +159,6 @@ pytest tests/ -v
 ```bash
 cd web
 npm test
-```
-
----
-
-## Ghi chú Phiên bản
-
-### v1.0-checkpoint-diagrams-complete (2026-01-22)
-- ✅ Khôi phục phiên bản ổn định
-- ✅ Sửa routing API (`/api/v2` → `/api`)
-- ✅ Cập nhật lạc quan với localStorage
-- ✅ Thêm chức năng nhập hàng (CRUD)
-- ✅ Sửa lỗi input bị prefix số 0
-- ✅ Hỗ trợ song ngữ (EN/VI) cho alerts
-- ✅ Cải thiện màu sắc và đồng bộ charts
-- ✅ Dọn dẹp TypeScript warnings
-
----
-
-## Liên hệ & Hỗ trợ
-
-**Dự án môn học**: Công nghệ Phần mềm (CNPM)  
-**Trường**: [Tên trường]  
-**Năm học**: 2025-2026
-
----
 
 **Cập nhật lần cuối**: 31/01/2026
+
