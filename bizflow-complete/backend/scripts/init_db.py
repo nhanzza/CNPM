@@ -1,33 +1,23 @@
-"""
-BizFlow - Database Initialization Script
-"""
-
+"""Database initialization script"""
 import asyncio
-import logging
-
 from src.infrastructure.database import init_db, engine
-
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(levelname)s - %(message)s"
-)
+from src.infrastructure.models import Base
 
 
 async def main():
-    logging.info("Initializing database tables...")
-
+    """Initialize database tables"""
+    print("🗄️  Initializing database tables...")
+    
     try:
-        # ❌ LỖI NHẸ: quên await (hàm async nhưng không await)
-        init_db()
-
-        logging.info("Database tables created!")
+        await init_db()
+        print("✅ Database tables created successfully!")
     except Exception as e:
-        logging.error(f"Init database failed: {e}")
+        print(f"❌ Error initializing database: {e}")
+        raise
     finally:
-        # ❌ LỖI NHẸ: dispose không await
-        engine.dispose()
-        logging.info("Database connection closed")
+        await engine.dispose()
 
 
 if __name__ == "__main__":
     asyncio.run(main())
+
