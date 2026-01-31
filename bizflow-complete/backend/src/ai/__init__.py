@@ -1,1 +1,1 @@
-"""Initialize ai package"""
+"""initialize AI package"""
