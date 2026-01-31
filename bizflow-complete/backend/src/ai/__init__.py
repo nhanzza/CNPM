@@ -1,2 +1,1 @@
-"""Initialize database package"""
-
+"""Initialize ai package"""
