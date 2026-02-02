@@ -4,6 +4,14 @@ from dataclasses import dataclass
 from typing import List, Dict
 
 
+@dataclass
+class AIConfig:
+    """AI configuration"""
+    openai_api_key: str = ""
+    google_api_key: str = ""
+    chroma_collection: str = "bizflow_products"
+
+
 class LLMService:
     """Large Language Model service"""
 
