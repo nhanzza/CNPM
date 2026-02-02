@@ -1,34 +1,27 @@
-# BizFlow - Hệ thống Quản lý Hộ Kinh Doanh
+BizFlow – Household Business Management System
 
-**Digital Transformation Platform for Household Businesses**
+Digital Transformation Platform for Household Businesses
 
-Nền tảng chuyển đổi số toàn diện cho hộ kinh doanh, hỗ trợ quản lý bán hàng, tồn kho, công nợ và kế toán tự động.
+An all-in-one digital transformation platform for household businesses, supporting sales management, inventory, receivables, and automated accounting.
 
----
-
-## Hướng dẫn Chạy nhanh
-
-### 1. Backend (FastAPI + Python)
-```bash
+Quick Start Guide
+1. Backend (FastAPI + Python)
 cd bizflow-complete/backend
 pip install -r requirements.txt
 python -m uvicorn src.main:app --reload
-```
-✅ Truy cập: http://localhost:8000/docs
 
-### 2. Web Frontend (Next.js + React)
-```bash
+
+✅ Access: http://localhost:8000/docs
+
+2. Web Frontend (Next.js + React)
 cd bizflow-complete/web
 npm install
 npm run dev
-```
-✅ Truy cập: http://localhost:3000
 
----
 
-## Cấu trúc Dự án
+✅ Access: http://localhost:3000
 
-```
+Project Structure
 bizflow-complete/
 ├── backend/                    # Python FastAPI Backend
 │   ├── src/
@@ -39,7 +32,7 @@ bizflow-complete/
 │   │   ├── ai/               # AI/LLM services
 │   │   └── main.py           # FastAPI application
 │   ├── tests/                # Unit & integration tests
-│   ├── scripts/              # Database init & utilities
+│   ├── scripts/              # Database initialization & utilities
 │   └── requirements.txt      # Python dependencies
 │
 └── web/                       # Next.js Web Frontend
@@ -52,113 +45,125 @@ bizflow-complete/
     │   └── types/            # TypeScript type definitions
     ├── public/               # Static assets
     └── package.json          # Node.js dependencies
-```
 
----
+Key Features
+For Staff
 
-## Tính năng Chính
+✅ Login & authentication
+✅ Create counter sales orders
+✅ Manage customer receivables
+✅ Print invoices
+✅ Receive AI-generated order notifications
+✅ Review and confirm AI-generated orders
 
-### Dành cho Nhân viên
-- ✅ Đăng nhập & xác thực
-- ✅ Tạo đơn hàng bán tại quầy
-- ✅ Quản lý công nợ khách hàng
-- ✅ In đơn hàng
-- ✅ Nhận thông báo đơn hàng từ AI
-- ✅ Xem và xác nhận đơn hàng AI
+For Business Owners
 
-### Dành cho Chủ hộ kinh doanh
-- ✅ Tất cả chức năng của nhân viên
-- ✅ Quản lý danh mục sản phẩm
-- ✅ Quản lý tồn kho (nhập/xuất)
-- ✅ Quản lý khách hàng
-- ✅ Xem báo cáo và phân tích
-- ✅ Quản lý tài khoản nhân viên
+✅ All staff features
+✅ Product catalog management
+✅ Inventory management (import/export)
+✅ Customer management
+✅ Reports and analytics
+✅ Staff account management
 
-### Tính năng AI
-- ✅ Tạo đơn hàng từ ngôn ngữ tự nhiên
-- ✅ Chuyển giọng nói thành văn bản
-- ✅ Tự động hoàn thành với RAG
-- ✅ Tìm kiếm sản phẩm thông minh
+AI Features
 
-### Kế toán Tự động
-- ✅ Ghi sổ tự động
-- ✅ Báo cáo thuế (Thông tư 88/2021/TT-BTC)
-- ✅ Phân tích tài chính
-- ✅ Theo dõi công nợ
+✅ Create orders from natural language
+✅ Speech-to-text conversion
+✅ Auto-completion with RAG
+✅ Intelligent product search
 
----
-## 🛠️ Công nghệ Sử dụng
+Automated Accounting
 
-### Backend
-- **Framework**: FastAPI
-- **Database**: SQLite (demo), PostgreSQL/MySQL (production)
-- **ORM**: SQLAlchemy
-- **Authentication**: JWT (python-jose)
-- **AI/LLM**: OpenAI API, Google Gemini
-- **Vector DB**: ChromaDB (RAG)
-- **Speech-to-Text**: Google Speech API, Whisper
-- **Validation**: Pydantic
+✅ Automatic bookkeeping
+✅ Tax reports (Circular 88/2021/TT-BTC – Vietnam)
+✅ Financial analysis
+✅ Receivables tracking
 
-### Web Frontend
-- **Framework**: Next.js 14 (App Router)
-- **UI Library**: React 18
-- **Language**: TypeScript
-- **State Management**: Zustand
-- **Styling**: Tailwind CSS
-- **HTTP Client**: Axios
-- **Charts**: Chart.js, Recharts
-- **Forms**: React Hook Form
+🛠️ Technology Stack
+Backend
 
----
+Framework: FastAPI
 
-## Tài liệu API
+Database: SQLite (demo), PostgreSQL/MySQL (production)
 
-- **Swagger UI**: http://localhost:8000/docs (Interactive API docs)
-- **ReDoc**: http://localhost:8000/redoc (API documentation)
+ORM: SQLAlchemy
 
-### Các endpoint chính:
-- `POST /api/auth/login` - Đăng nhập
-- `POST /api/auth/register` - Đăng ký chủ hộ
-- `GET /api/products` - Lấy danh sách sản phẩm
-- `POST /api/products` - Thêm sản phẩm mới
-- `GET /api/orders` - Lấy danh sách đơn hàng
-- `POST /api/orders` - Tạo đơn hàng mới
-- `GET /api/customers` - Lấy danh sách khách hàng
-- `POST /api/inventory/import` - Nhập hàng
+Authentication: JWT (python-jose)
 
----
+AI/LLM: OpenAI API, Google Gemini
 
-## Cấu hình
+Vector DB: ChromaDB (RAG)
 
-### Backend (.env)
-```env
+Speech-to-Text: Google Speech API, Whisper
+
+Validation: Pydantic
+
+Web Frontend
+
+Framework: Next.js 14 (App Router)
+
+UI Library: React 18
+
+Language: TypeScript
+
+State Management: Zustand
+
+Styling: Tailwind CSS
+
+HTTP Client: Axios
+
+Charts: Chart.js, Recharts
+
+Forms: React Hook Form
+
+API Documentation
+
+Swagger UI: http://localhost:8000/docs
+ (Interactive API docs)
+
+ReDoc: http://localhost:8000/redoc
+ (API documentation)
+
+Main Endpoints
+
+POST /api/auth/login – Login
+
+POST /api/auth/register – Register business owner
+
+GET /api/products – Get product list
+
+POST /api/products – Add new product
+
+GET /api/orders – Get orders
+
+POST /api/orders – Create new order
+
+GET /api/customers – Get customer list
+
+POST /api/inventory/import – Import inventory
+
+Configuration
+Backend (.env)
 DATABASE_URL=sqlite:///./bizflow.db
 JWT_SECRET_KEY=your-super-secret-key-change-this
 ACCESS_TOKEN_EXPIRE_MINUTES=30
 OPENAI_API_KEY=your-openai-key
 ENVIRONMENT=development
-```
 
-### Web Frontend (.env.local)
-```env
+Web Frontend (.env.local)
 NEXT_PUBLIC_API_URL=http://localhost:8000/api
 NEXT_PUBLIC_APP_NAME=BizFlow
-```
 
----
-
-## Testing
-
-### Backend Tests
-```bash
+Testing
+Backend Tests
 cd backend
 pytest tests/ -v
-```
 
-### Web Tests
-```bash
+Web Tests
 cd web
 npm test
 
+
 **Cập nhật lần cuối**: 31/01/2026
+
 
