@@ -120,20 +120,7 @@ class CreateProductCommand(BaseModel):
         }
 
 
-class UpdateProductCommand(BaseModel):
-    """Update product command"""
-    business_id: str
-    name: str = Field(..., min_length=1)
-    sku: str = Field(..., min_length=1)
-    price: float = Field(..., gt=0)
-    cost: float = Field(default=0, ge=0)
-    description: Optional[str] = None
-    category: str = ""
-    barcode: Optional[str] = None
-    units: Optional[List[dict]] = None
-    quantity_in_stock: float = Field(default=0, ge=0)
-    unit_of_measure: str = "cái"
-    min_quantity_alert: float = Field(default=0, ge=0)
+
 
 
 # ============ User Commands ============
