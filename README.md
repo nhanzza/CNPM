@@ -1,12 +1,12 @@
-# BizFlow - Hệ thống Quản lý Hộ Kinh Doanh
+#BizFlow – Household Business Management System
 
-**Digital Transformation Platform for Household Businesses**
+Digital Transformation Platform for Household Businesses
 
-Nền tảng chuyển đổi số toàn diện cho hộ kinh doanh, hỗ trợ quản lý bán hàng, tồn kho, công nợ và kế toán tự động.
+An all-in-one digital transformation platform for household businesses, supporting sales management, inventory, receivables, and automated accounting.
 
 ---
 
-## 🚀 Hướng dẫn Chạy nhanh
+## Quick Start Guide
 
 ### 1. Backend (FastAPI + Python)
 ```bash
@@ -14,7 +14,7 @@ cd bizflow-complete/backend
 pip install -r requirements.txt
 python -m uvicorn src.main:app --reload
 ```
-✅ Truy cập: http://localhost:8000/docs
+✅ Access: http://localhost:8000/docs
 
 ### 2. Web Frontend (Next.js + React)
 ```bash
@@ -22,11 +22,11 @@ cd bizflow-complete/web
 npm install
 npm run dev
 ```
-✅ Truy cập: http://localhost:3000
+✅ Access: http://localhost:3000
 
 ---
 
-## 📁 Cấu trúc Dự án
+## Project Structure
 
 ```
 bizflow-complete/
@@ -56,38 +56,38 @@ bizflow-complete/
 
 ---
 
-## ✨ Tính năng Chính
+## Key Features
 
-### 👨‍💼 Dành cho Nhân viên
-- ✅ Đăng nhập & xác thực
-- ✅ Tạo đơn hàng bán tại quầy
-- ✅ Quản lý công nợ khách hàng
-- ✅ In đơn hàng
-- ✅ Nhận thông báo đơn hàng từ AI
-- ✅ Xem và xác nhận đơn hàng AI
+### For Staff
+-✅ Login & authentication
+-✅ Create counter sales orders
+-✅ Manage customer receivables
+-✅ Print invoices
+-✅ Receive AI-generated order notifications
+-✅ Review and confirm AI-generated orders
 
-### 👔 Dành cho Chủ hộ kinh doanh
-- ✅ Tất cả chức năng của nhân viên
-- ✅ Quản lý danh mục sản phẩm
-- ✅ Quản lý tồn kho (nhập/xuất)
-- ✅ Quản lý khách hàng
-- ✅ Xem báo cáo và phân tích
-- ✅ Quản lý tài khoản nhân viên
+### For Business Owners
+-✅ All staff features
+-✅ Product catalog management
+-✅ Inventory management (import/export)
+-✅ Customer management
+-✅ Reports and analytics
+-✅ Staff account management
 
-### 🔮 Tính năng AI
-- ✅ Tạo đơn hàng từ ngôn ngữ tự nhiên
-- ✅ Chuyển giọng nói thành văn bản
-- ✅ Tự động hoàn thành với RAG
-- ✅ Tìm kiếm sản phẩm thông minh
+### AI Features
+-✅ Create orders from natural language
+-✅ Speech-to-text conversion
+-✅ Auto-completion with RAG
+-✅ Intelligent product search
 
-### 💰 Kế toán Tự động
-- ✅ Ghi sổ tự động
-- ✅ Báo cáo thuế (Thông tư 88/2021/TT-BTC)
-- ✅ Phân tích tài chính
-- ✅ Theo dõi công nợ
+### Automated Accounting
+-✅ Automatic bookkeeping
+-✅ Tax reports (Circular 88/2021/TT-BTC – Vietnam)
+-✅ Financial analysis
+-✅ Receivables tracking
 
 ---
-## 🛠️ Công nghệ Sử dụng
+## Technology Stack
 
 ### Backend
 - **Framework**: FastAPI
@@ -111,24 +111,24 @@ bizflow-complete/
 
 ---
 
-## 📚 Tài liệu API
+## API Documentation
 
 - **Swagger UI**: http://localhost:8000/docs (Interactive API docs)
 - **ReDoc**: http://localhost:8000/redoc (API documentation)
 
-### Các endpoint chính:
-- `POST /api/auth/login` - Đăng nhập
-- `POST /api/auth/register` - Đăng ký chủ hộ
-- `GET /api/products` - Lấy danh sách sản phẩm
-- `POST /api/products` - Thêm sản phẩm mới
-- `GET /api/orders` - Lấy danh sách đơn hàng
-- `POST /api/orders` - Tạo đơn hàng mới
-- `GET /api/customers` - Lấy danh sách khách hàng
-- `POST /api/inventory/import` - Nhập hàng
+### Main Endpoints
+- `POST /api/auth/login` - Login
+- `POST /api/auth/register` - Register business owner
+- `GET /api/products` - Get product list
+- `POST /api/products` - Add new product
+- `GET /api/orders` - Get orders
+- `POST /api/orders` - Create new order
+- `GET /api/customers` - Get customer list
+- `POST /api/inventory/import` - Import inventory
 
 ---
 
-## 🔧 Cấu hình
+## Configuration
 
 ### Backend (.env)
 ```env
@@ -147,7 +147,7 @@ NEXT_PUBLIC_APP_NAME=BizFlow
 
 ---
 
-## 🧪 Testing
+## Testing
 
 ### Backend Tests
 ```bash
@@ -161,28 +161,5 @@ cd web
 npm test
 ```
 
----
+Last Updated: 31/01/2026
 
-## 📝 Ghi chú Phiên bản
-
-### v1.0-checkpoint-diagrams-complete (2026-01-22)
-- ✅ Khôi phục phiên bản ổn định
-- ✅ Sửa routing API (`/api/v2` → `/api`)
-- ✅ Cập nhật lạc quan với localStorage
-- ✅ Thêm chức năng nhập hàng (CRUD)
-- ✅ Sửa lỗi input bị prefix số 0
-- ✅ Hỗ trợ song ngữ (EN/VI) cho alerts
-- ✅ Cải thiện màu sắc và đồng bộ charts
-- ✅ Dọn dẹp TypeScript warnings
-
----
-
-## 👥 Liên hệ & Hỗ trợ
-
-**Dự án môn học**: Công nghệ Phần mềm (CNPM)  
-**Trường**: [Tên trường]  
-**Năm học**: 2025-2026
-
----
-
-**Cập nhật lần cuối**: 31/01/2026
