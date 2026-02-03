@@ -4,13 +4,10 @@ from sqlalchemy.ext.declarative import declarative_base
 from datetime import datetime
 
 Base = declarative_base()
-
-
 class UserModel(Base):
     """User database model"""
     __tablename__ = "users"
-    
-    id = Column(String(36), primary_key=True)
+        id = Column(String(36), primary_key=True)
     username = Column(String(50), unique=True, nullable=False)
     email = Column(String(100), unique=True, nullable=False)
     password_hash = Column(String(255), nullable=False)
@@ -21,8 +18,6 @@ class UserModel(Base):
     last_login = Column(DateTime)
     created_at = Column(DateTime, default=datetime.now)
     updated_at = Column(DateTime, default=datetime.now, onupdate=datetime.now)
-
-
 class BusinessModel(Base):
     """Business database model"""
     __tablename__ = "businesses"
@@ -163,8 +158,6 @@ class DraftOrderModel(Base):
     is_rejected = Column(Boolean, default=False)
     created_at = Column(DateTime, default=datetime.now)
     confirmed_at = Column(DateTime)
-
-
 class AccountingRecordModel(Base):
     """Accounting record database model"""
     __tablename__ = "accounting_records"
