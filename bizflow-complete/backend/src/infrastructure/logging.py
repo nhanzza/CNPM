@@ -3,13 +3,9 @@ import logging
 import sys
 from pathlib import Path
 from logging.handlers import RotatingFileHandler
-
 from ..config.settings import settings
-
-
 def setup_logging() -> None:
-    """Setup application logging"""
-    
+    """Setup application logging""" 
     # Create logs directory if it doesn't exist
     log_dir = Path("logs")
     log_dir.mkdir(exist_ok=True)
@@ -50,8 +46,6 @@ def setup_logging() -> None:
     error_handler.setLevel(logging.ERROR)
     error_handler.setFormatter(formatter)
     root_logger.addHandler(error_handler)
-
-
 def get_logger(name: str) -> logging.Logger:
     """Get logger instance"""
     return logging.getLogger(name)
