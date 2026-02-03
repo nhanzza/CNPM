@@ -7,12 +7,14 @@ from ...domain.repositories import ICustomerRepository
 from ..models import CustomerModel
 
 
+
 class CustomerRepository(ICustomerRepository):
     """Customer repository implementation"""
 
     def __init__(self, session: AsyncSession):
         self.session = session
 
+    
     async def get_by_id(self, customer_id: str) -> Optional[Customer]:
         """Get customer by ID"""
         stmt = select(CustomerModel).where(CustomerModel.id == customer_id)
@@ -20,6 +22,7 @@ class CustomerRepository(ICustomerRepository):
         model = result.scalar_one_or_none()
         return self._to_entity(model) if model else None
 
+    
     async def get_by_phone(self, phone: str, business_id: str) -> Optional[Customer]:
         """Get customer by phone"""
         stmt = select(CustomerModel).where(
@@ -29,6 +32,7 @@ class CustomerRepository(ICustomerRepository):
         model = result.scalar_one_or_none()
         return self._to_entity(model) if model else None
 
+    
     async def get_by_email(self, email: str, business_id: str) -> Optional[Customer]:
         """Get customer by email"""
         stmt = select(CustomerModel).where(
@@ -38,6 +42,7 @@ class CustomerRepository(ICustomerRepository):
         model = result.scalar_one_or_none()
         return self._to_entity(model) if model else None
 
+    
     async def create(self, customer: Customer) -> Customer:
         """Create new customer"""
         model = self._to_model(customer)
@@ -46,6 +51,7 @@ class CustomerRepository(ICustomerRepository):
         await self.session.refresh(model)
         return self._to_entity(model)
 
+    
     async def update(self, customer: Customer) -> Customer:
         """Update customer"""
         model = await self.session.merge(self._to_model(customer))
@@ -53,6 +59,7 @@ class CustomerRepository(ICustomerRepository):
         await self.session.refresh(model)
         return self._to_entity(model)
 
+    
     async def delete(self, customer_id: str) -> bool:
         """Delete customer"""
         stmt = select(CustomerModel).where(CustomerModel.id == customer_id)
@@ -64,6 +71,7 @@ class CustomerRepository(ICustomerRepository):
             return True
         return False
 
+    
     async def get_all_by_business(
         self, business_id: str, skip: int = 0, limit: int = 100
     ) -> list[Customer]:
@@ -78,6 +86,7 @@ class CustomerRepository(ICustomerRepository):
         models = result.scalars().all()
         return [self._to_entity(model) for model in models]
 
+    
     async def search(
         self, business_id: str, query: str, skip: int = 0, limit: int = 100
     ) -> list[Customer]:
@@ -98,6 +107,7 @@ class CustomerRepository(ICustomerRepository):
         models = result.scalars().all()
         return [self._to_entity(model) for model in models]
 
+    
     async def get_top_debtors(
         self, business_id: str, limit: int = 10
     ) -> list[Customer]:
@@ -112,6 +122,7 @@ class CustomerRepository(ICustomerRepository):
         models = result.scalars().all()
         return [self._to_entity(model) for model in models]
 
+    
     async def get_top_spenders(
         self, business_id: str, limit: int = 10
     ) -> list[Customer]:
