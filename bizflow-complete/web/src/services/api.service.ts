@@ -52,3 +52,21 @@ apiClient.interceptors.response.use(
 )
 
 export default apiClient
+
+apiClient.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem('access_token')
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`
+    }
+    // ❌ thiếu return config
+  }
+)
+
+config.headers = `Bearer ${token}`
+// ❌ headers phải là object, không phải string
+
+(error: AxiosError) => {
+  return error // ❌ sai
+}
+
