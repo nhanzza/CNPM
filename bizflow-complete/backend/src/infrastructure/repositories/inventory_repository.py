@@ -10,9 +10,11 @@ from ..models import InventoryModel, ProductModel
 class InventoryRepository(IInventoryRepository):
     """Inventory repository implementation"""
 
+    
     def __init__(self, session: AsyncSession):
         self.session = session
 
+   
     async def get_by_id(self, inventory_id: str) -> Optional[Inventory]:
         """Get inventory by ID"""
         stmt = select(InventoryModel).where(InventoryModel.id == inventory_id)
@@ -20,6 +22,7 @@ class InventoryRepository(IInventoryRepository):
         model = result.scalar_one_or_none()
         return self._to_entity(model) if model else None
 
+    
     async def get_by_product(self, product_id: str) -> Optional[Inventory]:
         """Get inventory by product"""
         stmt = select(InventoryModel).where(InventoryModel.product_id == product_id)
@@ -27,6 +30,7 @@ class InventoryRepository(IInventoryRepository):
         model = result.scalar_one_or_none()
         return self._to_entity(model) if model else None
 
+    
     async def create(self, inventory: Inventory) -> Inventory:
         """Create new inventory"""
         model = self._to_model(inventory)
@@ -35,6 +39,7 @@ class InventoryRepository(IInventoryRepository):
         await self.session.refresh(model)
         return self._to_entity(model)
 
+    
     async def update(self, inventory: Inventory) -> Inventory:
         """Update inventory"""
         model = await self.session.merge(self._to_model(inventory))
@@ -42,6 +47,7 @@ class InventoryRepository(IInventoryRepository):
         await self.session.refresh(model)
         return self._to_entity(model)
 
+    
     async def delete(self, inventory_id: str) -> bool:
         """Delete inventory"""
         stmt = select(InventoryModel).where(InventoryModel.id == inventory_id)
@@ -53,6 +59,7 @@ class InventoryRepository(IInventoryRepository):
             return True
         return False
 
+    
     async def get_all_by_business(
         self, business_id: str, skip: int = 0, limit: int = 100
     ) -> list[Inventory]:
@@ -67,6 +74,7 @@ class InventoryRepository(IInventoryRepository):
         models = result.scalars().all()
         return [self._to_entity(model) for model in models]
 
+    
     async def get_low_stock(self, business_id: str) -> list[Inventory]:
         """Get products with low stock (below warning level)"""
         stmt = select(InventoryModel).where(
@@ -79,6 +87,7 @@ class InventoryRepository(IInventoryRepository):
         models = result.scalars().all()
         return [self._to_entity(model) for model in models]
 
+    
     async def update_quantity(self, product_id: str, quantity_change: float) -> Inventory:
         """Update inventory quantity"""
         stmt = select(InventoryModel).where(InventoryModel.product_id == product_id)
@@ -93,6 +102,7 @@ class InventoryRepository(IInventoryRepository):
         
         raise ValueError(f"Inventory not found for product {product_id}")
 
+    
     async def get_total_stock_value(self, business_id: str) -> float:
         """Calculate total stock value"""
         stmt = select(
@@ -104,6 +114,7 @@ class InventoryRepository(IInventoryRepository):
         total = result.scalar()
         return float(total or 0)
 
+    
     @staticmethod
     def _to_entity(model: InventoryModel) -> Inventory:
         """Convert model to entity"""
@@ -117,6 +128,7 @@ class InventoryRepository(IInventoryRepository):
             last_updated=model.last_updated,
         )
 
+    
     @staticmethod
     def _to_model(entity: Inventory) -> InventoryModel:
         """Convert entity to model"""
