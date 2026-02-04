@@ -1,53 +1,13 @@
-/* ================= ENUMS ================= */
-
-export type UserRole = 'admin' | 'owner' | 'employee';
-export type OrderType = 'counter' | 'phone' | 'zalo';
-export type OrderStatus = 'draft' | 'confirmed' | 'completed' | 'cancelled';
-export type SubscriptionPlan = 'basic' | 'pro' | 'premium';
-export type PaymentMethod = 'cash' | 'bank_transfer' | 'momo' | 'card';
-export type PaymentStatus = 'pending' | 'paid' | 'failed';
-export type Currency = 'VND' | 'USD';
-
-/* ================= USER ================= */
-
 export interface User {
   id: string;
   username: string;
   email: string;
   full_name: string;
-  role: UserRole;
+  role: 'admin' | 'owner' | 'employee';
   business_id?: string;
-  phone?: string;
-  avatar_url?: string;
-  last_login_at?: string;
   is_active: boolean;
   created_at: string;
-  updated_at?: string;
 }
-
-/* ================= BUSINESS ================= */
-
-export interface Business {
-  id: string;
-  name: string;
-  owner_id: string;
-  phone: string;
-  email: string;
-  address: string;
-  city: string;
-  province: string;
-  business_type: string;
-  tax_id?: string;
-  logo_url?: string;
-  currency: Currency;
-  is_active: boolean;
-  subscription_plan: SubscriptionPlan;
-  subscription_expires_at?: string;
-  created_at: string;
-  updated_at?: string;
-}
-
-/* ================= PRODUCT ================= */
 
 export interface Product {
   id: string;
@@ -58,54 +18,11 @@ export interface Product {
   barcode?: string;
   price: number;
   cost: number;
-  currency: Currency;
   category: string;
-  units: Array<{
-    name: string;      // ví dụ: thùng, hộp, cái
-    value: number;     // quy đổi về đơn vị gốc
-  }>;
-  min_stock?: number;
-  image_url?: string;
+  units: Array<{ name: string; value: number }>;
   is_active: boolean;
   created_at: string;
-  updated_at?: string;
 }
-
-/* ================= INVENTORY ================= */
-
-export interface Inventory {
-  id: string;
-  product_id: string;
-  business_id: string;
-  quantity_available: number;
-  quantity_reserved: number;
-  last_import_at?: string;
-  last_export_at?: string;
-  created_at: string;
-  updated_at?: string;
-}
-
-/* ================= CUSTOMER ================= */
-
-export interface Customer {
-  id: string;
-  business_id: string;
-  name: string;
-  phone: string;
-  email?: string;
-  address: string;
-  note?: string;
-  outstanding_debt: number;
-  credit_limit?: number;
-  total_purchases: number;
-  total_transactions: number;
-  last_purchase_at?: string;
-  is_active: boolean;
-  created_at: string;
-  updated_at?: string;
-}
-
-/* ================= ORDER ================= */
 
 export interface Order {
   id: string;
@@ -114,23 +31,16 @@ export interface Order {
   customer_id?: string;
   customer_name: string;
   employee_id: string;
-  order_type: OrderType;
-  status: OrderStatus;
+  order_type: 'counter' | 'phone' | 'zalo';
+  status: 'draft' | 'confirmed' | 'completed' | 'cancelled';
   items: OrderItem[];
-  subtotal: number;
-  discount: number;
-  tax?: number;
   total_amount: number;
+  discount: number;
   is_credit: boolean;
-  payment_method: PaymentMethod;
-  payment_status: PaymentStatus;
+  payment_method: string;
   notes?: string;
-  completed_at?: string;
   created_at: string;
-  updated_at?: string;
 }
-
-/* ================= ORDER ITEM ================= */
 
 export interface OrderItem {
   id: string;
@@ -140,26 +50,22 @@ export interface OrderItem {
   quantity: number;
   unit: string;
   unit_price: number;
-  cost_price?: number;
-  discount?: number;
   subtotal: number;
 }
 
-/* ================= PAYMENT ================= */
-
-export interface Payment {
+export interface Customer {
   id: string;
-  order_id: string;
   business_id: string;
-  amount: number;
-  method: PaymentMethod;
-  status: PaymentStatus;
-  transaction_code?: string;
-  paid_at?: string;
+  name: string;
+  phone: string;
+  email?: string;
+  address: string;
+  outstanding_debt: number;
+  total_purchases: number;
+  total_transactions: number;
+  is_active: boolean;
   created_at: string;
 }
-
-/* ================= DEBT ================= */
 
 export interface Debt {
   id: string;
@@ -172,10 +78,7 @@ export interface Debt {
   is_paid: boolean;
   paid_date?: string;
   created_at: string;
-  updated_at?: string;
 }
-
-/* ================= DRAFT ORDER (AI PARSING) ================= */
 
 export interface DraftOrder {
   id: string;
@@ -183,13 +86,11 @@ export interface DraftOrder {
   customer_name: string;
   items: DraftOrderItem[];
   total_amount: number;
-  raw_input: string;     // text nhập từ Zalo/ghi chú
-  confidence: number;    // độ tin cậy AI parse
-  parsed_by?: string;    // user/ai
+  raw_input: string;
+  confidence: number;
   is_confirmed: boolean;
   is_rejected: boolean;
   created_at: string;
-  updated_at?: string;
 }
 
 export interface DraftOrderItem {
@@ -200,15 +101,12 @@ export interface DraftOrderItem {
   unit_price: number;
 }
 
-/* ================= ANALYTICS ================= */
-
 export interface Analytics {
   total_revenue: number;
   total_orders: number;
   total_customers: number;
   outstanding_debt: number;
   average_order_value: number;
-  revenue_growth_rate?: number;
   top_sellers: TopSeller[];
   outstanding_debts: DebtReport[];
 }
@@ -225,5 +123,21 @@ export interface DebtReport {
   customer_name: string;
   outstanding_debt: number;
   total_orders: number;
-  overdue_amount?: number;
+}
+
+export interface Business {
+  id: string;
+  name: string;
+  owner_id: string;
+  phone: string;
+  email: string;
+  address: string;
+  city: string;
+  province: string;
+  business_type: string;
+  tax_id?: string;
+  is_active: boolean;
+  subscription_plan: 'basic' | 'pro' | 'premium';
+  subscription_expires_at?: string;
+  created_at: string;
 }
