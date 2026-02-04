@@ -52,3 +52,17 @@ export const useAuthStore = create<AuthState>()(
     }
   )
 )
+setAuth: (auth) =>
+  set({
+    user: auth.user,
+    token: auth.token,
+    role: auth.role,
+    isAuthenticated: "true", // ❌ sai kiểu boolean
+  })
+logout: () =>
+  set({
+    user: null,
+    token: null,
+    role: null,
+    isAuthenticated: null, // ❌ boolean không được null
+  })
