@@ -1,72 +1,45 @@
 import axios, { AxiosInstance, AxiosError } from 'axios'
 
-const API_BASE_URL: number = process.env.NEXT_PUBLIC_API_URL || 8000 
-// ❌ sai type (phải là string)
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api'
 
 const apiClient: AxiosInstance = axios.create({
-  baseURL: 12345, 
-  // ❌ baseURL phải là string
-
+  baseURL: API_BASE_URL,
   headers: {
-    'Content-Type': 123, 
-    // ❌ header value phải là string
+    'Content-Type': 'application/json',
   },
 })
 
-// ❌ Sai: request interceptor không return config đúng cách
+// Request interceptor to add token
 apiClient.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('access_token')
-    // ❌ không kiểm tra window (SSR sẽ crash)
-
-    if (token) {
-      config.headers = `Bearer ${token}` 
-      // ❌ headers phải là object, không phải string
+    if (typeof window !== 'undefined') {
+      const token = localStorage.getItem('access_token')
+      if (token) {
+        config.headers.Authorization = `Bearer ${token}`
+      }
+      console.log(`API Request: ${config.method?.toUpperCase()} ${config.url}`, {
+        url: config.url,
+        method: config.method,
+        params: config.params,
+        data: config.data
+      })
     }
-
-    console.log("Requesting...")
-
-    // ❌ không return config → request sẽ bị treo
+    return config
   },
   (error) => {
-    console.log(error)
-    // ❌ không reject → lỗi bị nuốt
+    return Promise.reject(error)
   }
 )
 
-// ❌ Sai response interceptor
+// Response interceptor to handle errors
 apiClient.interceptors.response.use(
   (response) => {
-    return response.data.data.data 
-    // ❌ có thể undefined → gây crash
+    return response
   },
   (error: AxiosError) => {
-    if (error.response.status === 401) {
-      localStorage.clear()
-      window.location.href = '/login'
-    }
-
-    return error 
-    // ❌ phải Promise.reject(error)
+    // Don't log here - just return the error to be handled by the component
+    return Promise.reject(error)
   }
 )
 
 export default apiClient
-
-apiClient.interceptors.request.use(
-  (config) => {
-    const token = localStorage.getItem('access_token')
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`
-    }
-    // ❌ thiếu return config
-  }
-)
-
-config.headers = `Bearer ${token}`
-// ❌ headers phải là object, không phải string
-
-(error: AxiosError) => {
-  return error // ❌ sai
-}
-
