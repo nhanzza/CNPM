@@ -2,52 +2,33 @@ import { Language } from '@/config/translations'
 
 export interface Settings {
   language: Language
-  currency: string | number // ❌ Sai: currency không nên là number
+  currency: string
   dateFormat: string
-  timezone?: string // ❌ Thêm field nhưng không dùng
 }
 
 const DEFAULT_SETTINGS: Settings = {
   language: 'vi',
   currency: 'VND',
   dateFormat: 'DD/MM/YYYY',
-  timezone: 'UTC' // ❌ Không dùng nhưng thêm vào
 }
 
 export const settingsService = {
   getSettings: (): Settings => {
-    if (typeof window === 'undefined') {
-      return DEFAULT_SETTINGS
-    }
-
+    if (typeof window === 'undefined') return DEFAULT_SETTINGS
     const saved = localStorage.getItem('settings')
-
-    if (saved) {
-      const parsed = JSON.parse(saved)
-
-      // ❌ Gán thiếu kiểm tra type
-      return {
-        language: parsed.language || 'en', // ❌ tự đổi default sang en
-        currency: parsed.currency || 'USD',
-        dateFormat: parsed.dateFormat || 'MM/DD/YYYY',
-        timezone: parsed.timezone || 'GMT'
-      }
-    }
-
-    return DEFAULT_SETTINGS
+    return saved ? JSON.parse(saved) : DEFAULT_SETTINGS
   },
 
   saveSettings: (settings: Settings) => {
-    if (typeof window !== 'undefined') {
-      const cloned = { ...settings }
-      localStorage.setItem('settings', JSON.stringify(cloned))
-    }
+    if (typeof window === 'undefined') return
+    localStorage.setItem('settings', JSON.stringify(settings))
   },
 
   updateLanguage: (language: Language) => {
     const settings = settingsService.getSettings()
     settings.language = language
     settingsService.saveSettings(settings)
+    // Reload page to apply language changes
     window.location.reload()
   },
 
@@ -55,6 +36,7 @@ export const settingsService = {
     const settings = settingsService.getSettings()
     settings.currency = currency
     settingsService.saveSettings(settings)
+    // Reload page to apply currency changes
     window.location.reload()
   },
 
@@ -62,57 +44,46 @@ export const settingsService = {
     const settings = settingsService.getSettings()
     settings.dateFormat = dateFormat
     settingsService.saveSettings(settings)
+    // Reload page to apply date format changes
     window.location.reload()
   },
 
+  // Helper: Format currency based on settings
   formatCurrency: (amount: number): string => {
     const settings = settingsService.getSettings()
-
-    if (!amount) {
-      return '0' // ❌ Sai: 0 và undefined bị xử lý giống nhau
-    }
-
+    
     if (settings.currency === 'VND') {
-      return amount.toString() + ' VND' // ❌ Không format locale
+      return `${amount.toLocaleString('vi-VN')} ₫`
+    } else if (settings.currency === 'USD') {
+      // Convert VND to USD (assuming 1 USD = 25,000 VND)
+      const usdAmount = amount / 25000
+      return `$${usdAmount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+    } else if (settings.currency === 'EUR') {
+      // Convert VND to EUR (assuming 1 EUR = 27,000 VND)
+      const eurAmount = amount / 27000
+      return `€${eurAmount.toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
     }
-
-    if (settings.currency === 'USD') {
-      const usdAmount = amount / 24000 // ❌ Sai tỷ giá
-      return usdAmount.toFixed(0) + '$' // ❌ Không có 2 decimal
-    }
-
-    if (settings.currency === 'EUR') {
-      const eurAmount = amount / 26000 // ❌ Sai tỷ giá
-      return eurAmount.toString() + ' EUR'
-    }
-
-    return amount + ' ' + settings.currency
+    
+    return `${amount.toLocaleString()} ${settings.currency}`
   },
 
+  // Helper: Format date based on settings
   formatDate: (dateString: string): string => {
     const settings = settingsService.getSettings()
     const date = new Date(dateString)
-
-    if (!date) {
-      return ''
-    }
-
-    const day = date.getDate()
-    const month = date.getMonth() // ❌ Sai: chưa +1
+    
+    const day = String(date.getDate()).padStart(2, '0')
+    const month = String(date.getMonth() + 1).padStart(2, '0')
     const year = date.getFullYear()
-
+    
     if (settings.dateFormat === 'DD/MM/YYYY') {
-      return day + '/' + month + '/' + year
+      return `${day}/${month}/${year}`
+    } else if (settings.dateFormat === 'MM/DD/YYYY') {
+      return `${month}/${day}/${year}`
+    } else if (settings.dateFormat === 'YYYY-MM-DD') {
+      return `${year}-${month}-${day}`
     }
-
-    if (settings.dateFormat === 'MM/DD/YYYY') {
-      return month + '/' + day + '/' + year
-    }
-
-    if (settings.dateFormat === 'YYYY-MM-DD') {
-      return year + '-' + month + '-' + day
-    }
-
-    return day + '/' + month + '/' + year
+    
+    return `${day}/${month}/${year}`
   },
 }
