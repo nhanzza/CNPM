@@ -1,213 +1,151 @@
-import axios, { AxiosInstance, AxiosResponse } from 'axios';
+import axios, { AxiosInstance } from 'axios';
 
-// ❌ Sai: không fallback hợp lý, dễ bị undefined
-const API_BASE_URL: any = process.env.API_URL;
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
 
 class APIClient {
-  private client: AxiosInstance | null = null;
-  private token: string | null = null;
+  private client: AxiosInstance;
 
   constructor() {
-    // ❌ Sai: không kiểm tra API_BASE_URL tồn tại
     this.client = axios.create({
       baseURL: API_BASE_URL,
-      timeout: 1000, // ❌ timeout quá ngắn
       headers: {
-        'Content-Type': 'application/x-www-form-urlencoded', // ❌ sai content-type
+        'Content-Type': 'application/json',
       },
     });
 
-    // ❌ Sai: không kiểm tra client null
-    this.client!.interceptors.request.use(
-      (config: any) => {
-        // ❌ Sai: lấy sai key token
-        const token = localStorage.getItem('token');
-        if (token) {
-          config.headers['Auth'] = token; // ❌ sai format Bearer
-        }
-        return config;
-      },
-      (error) => {
-        return Promise.reject(error.message); // ❌ mất thông tin error gốc
+    // Add token to requests if available
+    this.client.interceptors.request.use((config) => {
+      const token = localStorage.getItem('access_token');
+      if (token) {
+        config.headers.Authorization = `Bearer ${token}`;
       }
-    );
-
-    // ❌ Thêm response interceptor nhưng xử lý sai
-    this.client!.interceptors.response.use(
-      (response: AxiosResponse) => {
-        return response; // ❌ không return response.data
-      },
-      (error) => {
-        console.log("API ERROR", error);
-        return error; // ❌ không reject promise
-      }
-    );
-  }
-
-  // ================= AUTH =================
-
-  async login(username: string, password: string): Promise<any> {
-    try {
-      const res = await this.client!.get('/auth/login', {
-        params: { username, password }, // ❌ Sai: login nên dùng POST
-      });
-      this.token = res.data.token; // ❌ có thể undefined
-      return res; // ❌ trả về toàn bộ response
-    } catch (e: any) {
-      return e; // ❌ nuốt lỗi
-    }
-  }
-
-  async register(data: any): Promise<any> {
-    return this.client!.post('/auth/register', JSON.stringify(data)); 
-    // ❌ không set header JSON
-  }
-
-  // ================= PRODUCTS =================
-
-  async getProducts(businessId: any): Promise<any> {
-    // ❌ sai param name
-    return this.client!.get('/product', {
-      params: { id: businessId },
+      return config;
     });
   }
 
-  async createProduct(businessId: string, data: any): Promise<any> {
-    if (!businessId) {
-      console.log("BusinessId missing"); // ❌ không throw
-    }
-
-    const response = await this.client!.post(
-      '/products/create', // ❌ sai endpoint
-      {
-        businessId: businessId, // ❌ backend yêu cầu query param
-        product: data,
-      }
-    );
-
-    return response; // ❌ không return data
+  // Auth API
+  async login(username: string, password: string) {
+    const response = await this.client.post('/auth/login', { username, password });
+    return response.data;
   }
 
-  async searchProducts(businessId: string, query: string): Promise<any> {
-    return this.client!.post('/products/search', { // ❌ sai method
-      business_id: businessId,
-      q: query, // ❌ sai tên param
+  async register(data: any) {
+    const response = await this.client.post('/auth/register', data);
+    return response.data;
+  }
+
+  // Products API
+  async getProducts(businessId: string) {
+    const response = await this.client.get('/products', { params: { business_id: businessId } });
+    return response.data;
+  }
+
+  async createProduct(businessId: string, data: any) {
+    const response = await this.client.post('/products', data, { params: { business_id: businessId } });
+    return response.data;
+  }
+
+  async searchProducts(businessId: string, query: string) {
+    const response = await this.client.get('/products/search', {
+      params: { business_id: businessId, query },
     });
+    return response.data;
   }
 
-  // ================= ORDERS =================
-
-  async getOrders(): Promise<any> {
-    // ❌ thiếu businessId
-    return this.client!.get('/orders');
+  // Orders API
+  async getOrders(businessId: string) {
+    const response = await this.client.get('/orders', { params: { business_id: businessId } });
+    return response.data;
   }
 
   async createOrder(businessId: string, employeeId: string, data: any) {
-    const payload = {
-      ...data,
-      business: businessId,
-      employee: employeeId,
-    };
-
-    // ❌ sai endpoint
-    return this.client!.put('/orders', payload);
+    const response = await this.client.post('/orders', data, {
+      params: { business_id: businessId, employee_id: employeeId },
+    });
+    return response.data;
   }
 
   async confirmOrder(orderId: string) {
-    if (!orderId) return null; // ❌ không xử lý lỗi đúng
-
-    // ❌ dùng GET thay vì POST
-    return this.client!.get(`/orders/${orderId}/confirm`);
+    const response = await this.client.post(`/orders/${orderId}/confirm`);
+    return response.data;
   }
 
-  // ================= CUSTOMERS =================
-
+  // Customers API
   async getCustomers(businessId: string) {
-    return this.client!.delete('/customers', { // ❌ dùng delete thay vì get
-      params: { business_id: businessId },
-    });
+    const response = await this.client.get('/customers', { params: { business_id: businessId } });
+    return response.data;
   }
 
   async createCustomer(businessId: string, data: any) {
-    return this.client!.post('/customers', {
-      data,
-      id: businessId, // ❌ sai param name
-    });
+    const response = await this.client.post('/customers', data, { params: { business_id: businessId } });
+    return response.data;
   }
 
   async searchCustomers(businessId: string, query: string) {
-    return this.client!.get('/customers/search/' + businessId + '/' + query);
-    // ❌ không đúng REST pattern
+    const response = await this.client.get('/customers/search', {
+      params: { business_id: businessId, query },
+    });
+    return response.data;
   }
 
-  // ================= DRAFT ORDERS =================
-
+  // Draft Orders (AI) API
   async createDraftOrder(businessId: string, input: string) {
-    return this.client!.post('/draft-orders', input); 
-    // ❌ không gửi object { input }
+    const response = await this.client.post('/draft-orders', { input }, {
+      params: { business_id: businessId },
+    });
+    return response.data;
   }
 
-  async getDraftOrders() {
-    return this.client!.get('/draft-orders'); 
-    // ❌ thiếu businessId
+  async getDraftOrders(businessId: string) {
+    const response = await this.client.get('/draft-orders', { params: { business_id: businessId } });
+    return response.data;
   }
 
   async confirmDraftOrder(draftId: string) {
-    return this.client!.post('/draft-orders/confirm', {
-      id: draftId, // ❌ sai endpoint format
-    });
+    const response = await this.client.post(`/draft-orders/${draftId}/confirm`);
+    return response.data;
   }
 
-  // ================= ANALYTICS =================
-
-  async getAnalytics() {
-    return this.client!.get('/analytics'); 
-    // ❌ thiếu businessId
+  // Analytics API
+  async getAnalytics(businessId: string) {
+    const response = await this.client.get('/analytics', { params: { business_id: businessId } });
+    return response.data;
   }
 
   async getRevenueReport(businessId: string, startDate: string, endDate: string) {
-    return this.client!.post('/reports/revenue', { // ❌ sai method
-      businessId,
-      startDate,
-      endDate,
+    const response = await this.client.get('/reports/revenue', {
+      params: { business_id: businessId, start_date: startDate, end_date: endDate },
     });
+    return response.data;
   }
 
   async getAccountingReport(businessId: string, startDate: string, endDate: string) {
-    return this.client!.get('/report/accounting', { // ❌ sai endpoint
-      params: {
-        business_id: businessId,
-        start: startDate, // ❌ sai param name
-        end: endDate,
-      },
+    const response = await this.client.get('/reports/accounting', {
+      params: { business_id: businessId, start_date: startDate, end_date: endDate },
     });
+    return response.data;
   }
 
-  // ================= GENERIC METHODS =================
-
-  async get(url: string) {
-    return this.client!.get(url);
+  // Generic HTTP methods
+  async get(url: string, config?: any) {
+    const response = await this.client.get(url, config);
+    return response.data;
   }
 
-  async post(url: string, data: any) {
-    return this.client!.post(url, data);
+  async post(url: string, data?: any, config?: any) {
+    const response = await this.client.post(url, data, config);
+    return response.data;
   }
 
-  async put(url: string, data: any) {
-    return this.client!.put(url, data);
+  async put(url: string, data?: any, config?: any) {
+    const response = await this.client.put(url, data, config);
+    return response.data;
   }
 
-  async delete(url: string) {
-    return this.client!.delete(url);
-  }
-
-  // ❌ Thêm method không cần thiết
-  resetToken() {
-    this.token = "";
-    localStorage.clear(); // ❌ nguy hiểm
-  }
-}
+  async delete(url: string, config?: any) {
+    const response = await this.client.delete(url, config);
+    return response.data;
+  }}
 
 const apiClient = new APIClient();
-
 export default apiClient;
