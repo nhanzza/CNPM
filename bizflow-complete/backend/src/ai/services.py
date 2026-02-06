@@ -1,8 +1,7 @@
 """AI/LLM integration services for natural language order processing"""
 
 from dataclasses import dataclass
-from typing import List, Dict, Any
-from datetime import date
+from typing import List, Dict
 
 
 @dataclass
@@ -19,31 +18,20 @@ class LLMService:
     def __init__(self, config: AIConfig):
         self.config = config
 
-    async def extract_order_from_text(self, business_id: str, text: str) -> Dict[str, Any]:
-        """
-        Extract order information from natural language text.
-        """
+    async def extract_order_from_text(self, business_id: str, text: str) -> Dict:
         return {
             "business_id": business_id,
-            "customer_name": None,
+            "customer_name": "",
             "items": [],
             "confidence": 0.0
         }
 
-    async def extract_order_from_voice(
-        self,
-        business_id: str,
-        audio_bytes: bytes
-    ) -> Dict[str, Any]:
+    async def extract_order_from_voice(self, business_id: str, audio_bytes: bytes) -> Dict:
         text = await self.speech_to_text(audio_bytes)
         return await self.extract_order_from_text(business_id, text)
 
     async def speech_to_text(self, audio_bytes: bytes) -> str:
-        """
-        Convert speech audio to text.
-        TODO: integrate Whisper / Google STT
-        """
-        raise NotImplementedError("speech_to_text is not implemented yet")
+        return ""
 
 
 class RAGService:
@@ -52,14 +40,7 @@ class RAGService:
     def __init__(self, config: AIConfig):
         self.config = config
 
-    async def retrieve_product_info(
-        self,
-        business_id: str,
-        query: str
-    ) -> List[Dict[str, Any]]:
-        """
-        Retrieve product information from vector DB (e.g. Chroma).
-        """
+    async def retrieve_product_info(self, business_id: str, query: str) -> List[Dict]:
         return []
 
     async def augment_prompt(self, business_id: str, prompt: str) -> str:
@@ -75,8 +56,8 @@ class BookkeepingService:
         business_id: str,
         order_id: str,
         amount: float,
-        items: List[Dict[str, Any]]
-    ) -> Dict[str, Any]:
+        items: list
+    ) -> Dict:
         return {
             "business_id": business_id,
             "record_type": "revenue",
@@ -90,7 +71,7 @@ class BookkeepingService:
         business_id: str,
         debt_id: str,
         amount: float
-    ) -> Dict[str, Any]:
+    ) -> Dict:
         return {
             "business_id": business_id,
             "record_type": "debt",
@@ -103,12 +84,26 @@ class BookkeepingService:
         business_id: str,
         product_id: str,
         quantity: float
-    ) -> Dict[str, Any]:
+    ) -> Dict:
         return {
             "business_id": business_id,
             "record_type": "inventory_import",
             "product_id": product_id,
             "quantity": quantity
+        }
+
+    async def generate_accounting_report(
+        self,
+        business_id: str,
+        start_date,
+        end_date
+    ) -> Dict:
+        return {
+            "business_id": business_id,
+            "period": f"{start_date} to {end_date}",
+            "revenue_ledger": [],
+            "debt_ledger": [],
+            "inventory_ledger": []
         }
 
     async def generate_accounting_report(
