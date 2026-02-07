@@ -62,21 +62,7 @@ export default function ProductsPage() {
       })
       const data = response.data.products || response.data || []
 
-      // Apply optimistic quantity updates from localStorage (for inventory imports)
-      const optimisticUpdates = typeof window !== 'undefined'
-        ? JSON.parse(localStorage.getItem('productQuantityUpdates') || '{}')
-        : {}
-
-      const updatedProducts = Array.isArray(data)
-        ? data.map((p: Product) => ({
-          ...p,
-          quantity_in_stock: optimisticUpdates[p.id] !== undefined
-            ? optimisticUpdates[p.id]
-            : p.quantity_in_stock
-        }))
-        : []
-
-      setProducts(updatedProducts)
+      setProducts(Array.isArray(data) ? data : [])
       return
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Unknown error'
@@ -224,11 +210,6 @@ export default function ProductsPage() {
       }, {
         params: { store_id: storeId }
       })
-      if (typeof window !== 'undefined') {
-        const optimisticUpdates = JSON.parse(localStorage.getItem('productQuantityUpdates') || '{}')
-        delete optimisticUpdates[editingId]
-        localStorage.setItem('productQuantityUpdates', JSON.stringify(optimisticUpdates))
-      }
       setShowEditForm(false)
       setEditingId(null)
       fetchProducts()

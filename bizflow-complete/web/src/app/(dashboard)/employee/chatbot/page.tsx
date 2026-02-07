@@ -70,18 +70,7 @@ export default function ChatbotPage() {
       }
       const res = await apiClient.get('/products', { params: { store_id: storeId } })
       const data = res.data.products || res.data || []
-      const optimisticUpdates = typeof window !== 'undefined'
-        ? JSON.parse(localStorage.getItem('productQuantityUpdates') || '{}')
-        : {}
-
-      const updatedProducts = Array.isArray(data)
-        ? data.map((p: any) => ({
-          ...p,
-          quantity_in_stock: optimisticUpdates[p.id] !== undefined
-            ? optimisticUpdates[p.id]
-            : p.quantity_in_stock
-        }))
-        : []
+      const updatedProducts = Array.isArray(data) ? data : []
 
       setProducts(updatedProducts)
       return updatedProducts

@@ -167,20 +167,8 @@ export default function OrdersPage() {
           params: { store_id: storeId }
         })
         const data = response.data.products || response.data || []
-
-        // Apply optimistic quantity updates from localStorage (for inventory imports)
-        const optimisticUpdates = typeof window !== 'undefined'
-          ? JSON.parse(localStorage.getItem('productQuantityUpdates') || '{}')
-          : {}
-
         if (Array.isArray(data)) {
-          const updatedProducts = data.map((p: Product) => ({
-            ...p,
-            quantity_in_stock: optimisticUpdates[p.id] !== undefined
-              ? optimisticUpdates[p.id]
-              : p.quantity_in_stock
-          }))
-          setProducts(updatedProducts)
+          setProducts(data)
           return
         }
       } catch (apiError) {
@@ -450,29 +438,6 @@ export default function OrdersPage() {
     }
   }, [showAddForm, showEditForm])
 
-  const applyInventoryDelta = (deltaByProductId: Record<string, number>) => {
-    if (typeof window === 'undefined') return
-
-    const optimisticUpdates = JSON.parse(localStorage.getItem('productQuantityUpdates') || '{}')
-    const updatedOptimistic = { ...optimisticUpdates }
-
-    Object.entries(deltaByProductId).forEach(([productId, delta]) => {
-      const product = products.find(p => p.id === productId)
-      const baseQuantity = updatedOptimistic[productId] ?? product?.quantity_in_stock
-      if (baseQuantity === undefined) return
-
-      const nextQuantity = Math.max(0, Number(baseQuantity) + delta)
-      updatedOptimistic[productId] = nextQuantity
-    })
-
-    localStorage.setItem('productQuantityUpdates', JSON.stringify(updatedOptimistic))
-    setProducts(prev => prev.map(p => (
-      updatedOptimistic[p.id] !== undefined
-        ? { ...p, quantity_in_stock: updatedOptimistic[p.id] }
-        : p
-    )))
-  }
-
   const getCustomerDisplayName = (order: Order) => {
     const matched = order.customer_id
       ? customers.find(c => c.id === order.customer_id)
@@ -595,20 +560,6 @@ export default function OrdersPage() {
       note: editFormData.note
     }
 
-    const currentOrder = orders.find(order => order.id === editingId)
-    const wasPaid = currentOrder?.payment_status === 'paid'
-    const willBePaid = updateData.payment_status === 'paid'
-    const inventoryDelta: Record<string, number> = {}
-
-    if (currentOrder?.items?.length && wasPaid !== willBePaid) {
-      const direction = willBePaid ? -1 : 1
-      currentOrder.items.forEach(item => {
-        if (!item.product_id) return
-        const qty = Number(item.quantity) || 0
-        inventoryDelta[item.product_id] = (inventoryDelta[item.product_id] || 0) + (qty * direction)
-      })
-    }
-
     // Optimistic update: Update local state immediately
     setOrders(prevOrders => prevOrders.map(order =>
       order.id === editingId
@@ -631,10 +582,6 @@ export default function OrdersPage() {
           ? updatedOrder
           : order
       ))
-
-      if (Object.keys(inventoryDelta).length > 0) {
-        applyInventoryDelta(inventoryDelta)
-      }
 
       alert(t('successUpdateOrder'))
     } catch (error) {
