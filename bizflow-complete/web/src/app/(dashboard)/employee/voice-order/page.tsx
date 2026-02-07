@@ -39,11 +39,11 @@ export default function VoiceOrderPage() {
     }
 
     recognitionRef.current = new SpeechRecognition()
-    
+
     // CRITICAL: Set Vietnamese language
     recognitionRef.current.lang = 'vi-VN'
     recognitionRef.current.language = 'vi-VN'
-    
+
     recognitionRef.current.continuous = true
     recognitionRef.current.interimResults = true
     recognitionRef.current.maxAlternatives = 1
@@ -57,20 +57,20 @@ export default function VoiceOrderPage() {
     recognitionRef.current.onresult = (event: any) => {
       let interimTranscript = ''
       let finalTranscript = ''
-      
+
       for (let i = event.resultIndex; i < event.results.length; i++) {
         const transcript = event.results[i][0].transcript
         const confidence = event.results[i][0].confidence
-        
+
         console.log(`Speech result [${i}]: "${transcript}" (confidence: ${confidence?.toFixed(2) || 'N/A'})`)
-        
+
         if (event.results[i].isFinal) {
           finalTranscript += transcript + ' '
         } else {
           interimTranscript += transcript
         }
       }
-      
+
       if (finalTranscript) {
         setTranscript(prev => prev + finalTranscript)
       }
@@ -103,7 +103,12 @@ export default function VoiceOrderPage() {
   const fetchProducts = async () => {
     try {
       const user = authService.getCurrentUser()
-      const storeId = user?.store_id || '1'
+      const storeId = user?.store_id
+      if (!storeId) {
+        setProducts([])
+        console.warn('Missing store_id for product fetch')
+        return
+      }
       const res = await apiClient.get('/products', { params: { store_id: storeId } })
       setProducts(res.data.products || res.data || [])
     } catch (error) {
@@ -114,11 +119,11 @@ export default function VoiceOrderPage() {
   const startListening = () => {
     if (recognitionRef.current) {
       setTranscript('')
-      
+
       // CRITICAL: Force Vietnamese language before each start
       recognitionRef.current.lang = 'vi-VN'
       recognitionRef.current.language = 'vi-VN'
-      
+
       console.log('▶️ Starting speech recognition with language:', recognitionRef.current.lang)
       recognitionRef.current.start()
     }
@@ -198,10 +203,13 @@ export default function VoiceOrderPage() {
 
       let foundCount = 0
 
+      const leadingVerbPattern = /^(ban|mua|lay|dat|cho|toi)\s+/i
+
       segments.forEach(segment => {
-        const match = segment.match(/^(\d+)\s+(.+)$/)
+        const cleanedSegment = segment.replace(leadingVerbPattern, '').trim()
+        const match = cleanedSegment.match(/^(\d+)\s+(.+)$/)
         if (!match) {
-          console.warn('Segment does not match pattern:', segment)
+          console.warn('Segment does not match pattern:', cleanedSegment)
           return
         }
 
@@ -263,7 +271,11 @@ export default function VoiceOrderPage() {
   const handleCreateOrder = async (order: VoiceOrder) => {
     try {
       const user = authService.getCurrentUser()
-      const storeId = user?.store_id || '1'
+      const storeId = user?.store_id
+      if (!storeId) {
+        alert(t('❌ Không tìm thấy cửa hàng. Vui lòng đăng nhập lại.', '❌ Store not found. Please log in again.'))
+        return
+      }
 
       const items = order.items.map(item => {
         const product = products.find(p => p.name === item.product_name)
@@ -274,6 +286,15 @@ export default function VoiceOrderPage() {
           price: product?.price || 0
         }
       })
+
+      const missingItems = items.filter(item => !item.product_id)
+      if (missingItems.length > 0) {
+        alert(t(
+          '❌ Không tìm thấy sản phẩm tương ứng. Vui lòng nói lại rõ tên sản phẩm.',
+          '❌ Products not found. Please repeat with clearer product names.'
+        ))
+        return
+      }
 
       const payload = {
         customer_name: order.customer_name,
@@ -347,9 +368,8 @@ export default function VoiceOrderPage() {
           </h2>
 
           {/* Microphone Status */}
-          <div className={`p-6 rounded-xl mb-6 border-2 ${
-            isListening ? 'bg-red-50 border-red-300' : 'bg-blue-50 border-blue-300'
-          }`}>
+          <div className={`p-6 rounded-xl mb-6 border-2 ${isListening ? 'bg-red-50 border-red-300' : 'bg-blue-50 border-blue-300'
+            }`}>
             <div className="flex items-center justify-between">
               <div>
                 <p className={`text-sm font-medium ${isListening ? 'text-red-700' : 'text-blue-700'}`}>

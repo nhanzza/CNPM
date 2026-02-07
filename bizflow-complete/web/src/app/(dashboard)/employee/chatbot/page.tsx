@@ -62,20 +62,76 @@ export default function ChatbotPage() {
   const fetchProducts = async () => {
     try {
       const user = authService.getCurrentUser()
-      const storeId = user?.store_id || 'store_123'
+      const storeId = user?.store_id
+      if (!storeId) {
+        setProducts([])
+        console.warn('Missing store_id for product fetch')
+        return []
+      }
       const res = await apiClient.get('/products', { params: { store_id: storeId } })
-      setProducts(res.data.products || res.data || [])
+      const data = res.data.products || res.data || []
+      const optimisticUpdates = typeof window !== 'undefined'
+        ? JSON.parse(localStorage.getItem('productQuantityUpdates') || '{}')
+        : {}
+
+      const updatedProducts = Array.isArray(data)
+        ? data.map((p: any) => ({
+          ...p,
+          quantity_in_stock: optimisticUpdates[p.id] !== undefined
+            ? optimisticUpdates[p.id]
+            : p.quantity_in_stock
+        }))
+        : []
+
+      setProducts(updatedProducts)
+      return updatedProducts
     } catch (error) {
       console.error('Failed to fetch products', error)
+      return []
     }
   }
 
-  const parseOrderFromText = (text: string): DraftOrder | null => {
+  const parseOrderFromText = (text: string, productList: any[] = products): DraftOrder | null => {
     // Simple NLP parsing for Vietnamese text
     // Pattern: "X [sản phẩm/product name] + Y [sản phẩm] cho [customer name]"
 
     try {
+      const normalizeText = (value: string) =>
+        value
+          .toLowerCase()
+          .normalize('NFD')
+          .replace(/[\u0300-\u036f]/g, '')
+          .replace(/\s+/g, ' ')
+          .trim()
+
+      const numberWords: Record<string, string> = {
+        'mot': '1',
+        'một': '1',
+        'hai': '2',
+        'ba': '3',
+        'bon': '4',
+        'bốn': '4',
+        'tu': '4',
+        'tư': '4',
+        'nam': '5',
+        'năm': '5',
+        'sau': '6',
+        'sáu': '6',
+        'bay': '7',
+        'bảy': '7',
+        'tam': '8',
+        'tám': '8',
+        'chin': '9',
+        'chín': '9',
+        'muoi': '10',
+        'mười': '10'
+      }
+
       let orderText = text.toLowerCase().trim()
+      Object.entries(numberWords).forEach(([word, number]) => {
+        const wordRegex = new RegExp(`\\b${word}\\b`, 'g')
+        orderText = orderText.replace(wordRegex, number)
+      })
       const items = []
       let total = 0
       let customerName = 'Khách'
@@ -95,21 +151,22 @@ export default function ChatbotPage() {
       while ((match = itemPattern.exec(orderText)) !== null) {
         const quantity = parseInt(match[1])
         const productText = match[2].trim()
+        const normalizedProductText = normalizeText(productText)
 
         // Find matching product in database using fuzzy matching
         let matchedProduct = null
-        
+
         // First try exact substring match
-        matchedProduct = products.find(p =>
-          productText.includes(p.name.toLowerCase()) ||
-          p.name.toLowerCase().includes(productText)
+        matchedProduct = productList.find(p =>
+          normalizedProductText.includes(normalizeText(p.name)) ||
+          normalizeText(p.name).includes(normalizedProductText)
         )
 
         // If no exact match, try partial word matching
         if (!matchedProduct) {
-          const words = productText.split(/\s+/)
-          matchedProduct = products.find(p => {
-            const productWords = p.name.toLowerCase().split(/\s+/)
+          const words = normalizedProductText.split(/\s+/)
+          matchedProduct = productList.find(p => {
+            const productWords = normalizeText(p.name).split(/\s+/)
             return words.some(w => productWords.some((pw: string) => pw.includes(w) || w.includes(pw)))
           })
         }
@@ -159,8 +216,9 @@ export default function ChatbotPage() {
     setLoading(true)
 
     try {
+      const latestProducts = await fetchProducts()
       // Try to parse as order
-      const draftOrder = parseOrderFromText(inputValue)
+      const draftOrder = parseOrderFromText(inputValue, latestProducts)
 
       if (draftOrder) {
         // Successfully parsed an order
@@ -185,19 +243,19 @@ export default function ChatbotPage() {
       } else {
         // General response
         const storeStats = {
-          totalProducts: products.length,
-          topProducts: products.slice(0, 3).map(p => `${p.name} (${p.quantity_in_stock} ${p.unit_of_measure})`).join(', '),
-          outOfStock: products.filter(p => p.quantity_in_stock === 0).length
+          totalProducts: latestProducts.length,
+          topProducts: latestProducts.slice(0, 3).map(p => `${p.name} (${p.quantity_in_stock} ${p.unit_of_measure})`).join(', '),
+          outOfStock: latestProducts.filter(p => p.quantity_in_stock === 0).length
         }
 
-        const responses: {[key: string]: string} = {
+        const responses: { [key: string]: string } = {
           'hết': t(
-            `📊 Sản phẩm hết hàng: ${storeStats.outOfStock}\n\nDanh sách: ${products.filter(p => p.quantity_in_stock === 0).map(p => p.name).join(', ') || 'Không có'}`,
-            `📊 Out of stock: ${storeStats.outOfStock}\n\nList: ${products.filter(p => p.quantity_in_stock === 0).map(p => p.name).join(', ') || 'None'}`
+            `📊 Sản phẩm hết hàng: ${storeStats.outOfStock}\n\nDanh sách: ${latestProducts.filter(p => p.quantity_in_stock === 0).map(p => p.name).join(', ') || 'Không có'}`,
+            `📊 Out of stock: ${storeStats.outOfStock}\n\nList: ${latestProducts.filter(p => p.quantity_in_stock === 0).map(p => p.name).join(', ') || 'None'}`
           ),
           'hàng': t(
-            `📦 Tồn kho hiện tại:\n\n${products.slice(0, 5).map(p => `• ${p.name}: ${p.quantity_in_stock} ${p.unit_of_measure}`).join('\n')}`,
-            `📦 Current stock:\n\n${products.slice(0, 5).map(p => `• ${p.name}: ${p.quantity_in_stock} ${p.unit_of_measure}`).join('\n')}`
+            `📦 Tồn kho hiện tại:\n\n${latestProducts.slice(0, 5).map(p => `• ${p.name}: ${p.quantity_in_stock} ${p.unit_of_measure}`).join('\n')}`,
+            `📦 Current stock:\n\n${latestProducts.slice(0, 5).map(p => `• ${p.name}: ${p.quantity_in_stock} ${p.unit_of_measure}`).join('\n')}`
           ),
           'cộng tính tiền': t(
             `💰 Tính tiền tự động đã sẵn sàng!\n\nChỉ cần nói: "Bán 2 bánh mì + 3 nước cho khách Hương"\n\nTôi sẽ tự động:\n✅ Tìm sản phẩm\n✅ Tính tổng tiền\n✅ Tạo đơn hàng nháp\n\nThử ngay!`,
@@ -251,7 +309,20 @@ export default function ChatbotPage() {
   const handleCreateOrder = async (draft: DraftOrder) => {
     try {
       const user = authService.getCurrentUser()
-      const storeId = user?.store_id || '1'
+      const storeId = user?.store_id
+      if (!storeId) {
+        const errorMessage: Message = {
+          id: `msg_${messageCountRef.current++}`,
+          role: 'assistant',
+          content: t(
+            '❌ Không tìm thấy cửa hàng của bạn. Vui lòng đăng nhập lại để tạo đơn hàng.',
+            '❌ Store not found. Please log in again to create orders.'
+          ),
+          timestamp: new Date()
+        }
+        setMessages(prev => [...prev, errorMessage])
+        return
+      }
 
       // Transform items to match backend schema (only product_id, quantity, unit)
       const orderItems = draft.items.map(item => ({
@@ -260,14 +331,14 @@ export default function ChatbotPage() {
         unit: item.unit
       }))
 
-      await apiClient.post(`/orders?store_id=${storeId}`, {
+      await apiClient.post('/orders', {
         customer_name: draft.customer_name,
         items: orderItems,
         order_type: 'counter',
         payment_status: 'pending',
         payment_method: 'cash',
         notes: `Tạo từ AI chatbot`
-      })
+      }, { params: { store_id: storeId } })
 
       setDraftOrders(draftOrders.filter(o => o.id !== draft.id))
 
@@ -308,11 +379,10 @@ export default function ChatbotPage() {
           {messages.map(msg => (
             <div key={msg.id} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
               <div
-                className={`max-w-md px-4 py-3 rounded-lg ${
-                  msg.role === 'user'
+                className={`max-w-md px-4 py-3 rounded-lg ${msg.role === 'user'
                     ? 'bg-indigo-600 text-white rounded-br-none'
                     : 'bg-white text-gray-800 border border-gray-200 rounded-bl-none'
-                }`}
+                  }`}
               >
                 <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
 
@@ -373,7 +443,7 @@ export default function ChatbotPage() {
               {t('Cộng tính tiền tự động', 'Auto-calculate total')}
             </button>
           </div>
-          
+
           <div className="flex gap-2">
             <input
               type="text"

@@ -382,6 +382,7 @@ MOCK_DEBTS_DB = {
 # AI draft order and bookkeeping mock stores
 MOCK_DRAFT_ORDERS_DB: Dict[str, List[Dict[str, Any]]] = {}
 MOCK_JOURNAL_DB: Dict[str, List[Dict[str, Any]]] = {}
+MOCK_EMPLOYEES_DB: Dict[str, List[Dict[str, Any]]] = {}
 
 # Minimal chart of accounts for TT88-lite demos
 CHART_OF_ACCOUNTS: Dict[str, str] = {
@@ -565,6 +566,9 @@ class AuthService:
         
         # Initialize empty journal entries
         MOCK_JOURNAL_DB[store_id] = []
+
+        # Initialize empty employees list
+        MOCK_EMPLOYEES_DB[store_id] = []
     
     @staticmethod
     async def get_current_user(token: str) -> Optional[dict]:

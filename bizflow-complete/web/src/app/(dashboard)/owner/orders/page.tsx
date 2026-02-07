@@ -106,7 +106,7 @@ export default function OrdersPage() {
       setLoading(true)
       const user = authService.getCurrentUser()
       const storeId = user?.store_id || '1'
-      
+
       // Try to fetch from API first
       try {
         const response = await apiClient.get('/orders', {
@@ -121,7 +121,7 @@ export default function OrdersPage() {
       } catch (apiError) {
         console.log('API fetch failed, using mock data:', apiError)
       }
-      
+
       // Fallback to mock data if API fails
       const mockOrders = [
         {
@@ -161,23 +161,23 @@ export default function OrdersPage() {
     try {
       const user = authService.getCurrentUser()
       const storeId = user?.store_id || '1'
-      
+
       try {
         const response = await apiClient.get('/products', {
           params: { store_id: storeId }
         })
         const data = response.data.products || response.data || []
-        
+
         // Apply optimistic quantity updates from localStorage (for inventory imports)
-        const optimisticUpdates = typeof window !== 'undefined' 
+        const optimisticUpdates = typeof window !== 'undefined'
           ? JSON.parse(localStorage.getItem('productQuantityUpdates') || '{}')
           : {}
-        
+
         if (Array.isArray(data)) {
           const updatedProducts = data.map((p: Product) => ({
             ...p,
-            quantity_in_stock: optimisticUpdates[p.id] !== undefined 
-              ? optimisticUpdates[p.id] 
+            quantity_in_stock: optimisticUpdates[p.id] !== undefined
+              ? optimisticUpdates[p.id]
               : p.quantity_in_stock
           }))
           setProducts(updatedProducts)
@@ -187,7 +187,7 @@ export default function OrdersPage() {
         const message = apiError instanceof Error ? apiError.message : 'Unknown error'
         console.warn('fetchProducts fallback, using mock data. Reason:', message)
       }
-      
+
       const mockProducts = [
         { id: 'prod_001', name: 'Nước lọc 1.5L', sku: 'NL-1.5L', price: 15000, quantity_in_stock: 5000, unit_of_measure: 'chai', min_quantity_alert: 100 },
         { id: 'prod_002', name: 'Bánh mì', sku: 'BM-001', price: 25000, quantity_in_stock: 50, unit_of_measure: 'chiếc', min_quantity_alert: 10 },
@@ -257,7 +257,7 @@ export default function OrdersPage() {
     if (!product) return
 
     const quantity = parseFloat(selectedQuantity)
-    
+
     // Check inventory
     if (quantity > product.quantity_in_stock) {
       alert(`Không đủ hàng! Chỉ còn ${product.quantity_in_stock} ${product.unit_of_measure}`)
@@ -282,7 +282,7 @@ export default function OrdersPage() {
       ...formData,
       items: [...formData.items, newItem]
     })
-    
+
     setSelectedProductId('')
     setSelectedQuantity('')
   }
@@ -301,7 +301,7 @@ export default function OrdersPage() {
 
   const handleAddOrder = async (e: React.FormEvent) => {
     e.preventDefault()
-    
+
     if (!formData.customer_id) {
       alert(t('pleaseSelectCustomer'))
       return
@@ -318,7 +318,7 @@ export default function OrdersPage() {
       alert(t('cannotShipNoAddress'))
       return
     }
-    
+
     const user = authService.getCurrentUser()
     const storeId = user?.store_id || '1'
     const totalAmount = calculateTotal()
@@ -372,7 +372,7 @@ export default function OrdersPage() {
       const response = await apiClient.post('/orders', postData, {
         params: { store_id: storeId }
       })
-      
+
       // Replace optimistic order with real order from API
       const createdOrder = response.data
       setOrders([createdOrder, ...orders])
@@ -387,7 +387,7 @@ export default function OrdersPage() {
 
     setShowAddForm(false)
     setFormData({ customer_id: '', customer_name: '', status: 'pending', payment_status: 'pending', note: '', items: [] })
-    
+
     await new Promise(resolve => setTimeout(resolve, 300))
     await fetchCustomers()
     await fetchProducts()  // Refresh product inventory after order creation
@@ -422,7 +422,7 @@ export default function OrdersPage() {
   const handleEditOrder = async (order: Order) => {
     // Đảm bảo dữ liệu khách hàng mới nhất trước khi mở form
     await fetchCustomers()
-    
+
     // Chờ một chút để setState hoàn tất
     await new Promise(resolve => setTimeout(resolve, 100))
 
@@ -449,6 +449,36 @@ export default function OrdersPage() {
       fetchCustomers()
     }
   }, [showAddForm, showEditForm])
+
+  const applyInventoryDelta = (deltaByProductId: Record<string, number>) => {
+    if (typeof window === 'undefined') return
+
+    const optimisticUpdates = JSON.parse(localStorage.getItem('productQuantityUpdates') || '{}')
+    const updatedOptimistic = { ...optimisticUpdates }
+
+    Object.entries(deltaByProductId).forEach(([productId, delta]) => {
+      const product = products.find(p => p.id === productId)
+      const baseQuantity = updatedOptimistic[productId] ?? product?.quantity_in_stock
+      if (baseQuantity === undefined) return
+
+      const nextQuantity = Math.max(0, Number(baseQuantity) + delta)
+      updatedOptimistic[productId] = nextQuantity
+    })
+
+    localStorage.setItem('productQuantityUpdates', JSON.stringify(updatedOptimistic))
+    setProducts(prev => prev.map(p => (
+      updatedOptimistic[p.id] !== undefined
+        ? { ...p, quantity_in_stock: updatedOptimistic[p.id] }
+        : p
+    )))
+  }
+
+  const getCustomerDisplayName = (order: Order) => {
+    const matched = order.customer_id
+      ? customers.find(c => c.id === order.customer_id)
+      : undefined
+    return matched?.name || order.customer_name || ''
+  }
 
   const handlePrintOrder = (order: Order) => {
     const printWindow = window.open('', '_blank')
@@ -499,7 +529,7 @@ export default function OrdersPage() {
         <div class="info">
           <div class="info-box">
             <h3>${t('Khách Hàng', 'Customer')}</h3>
-            <p><strong>${order.customer_name}</strong></p>
+            <p><strong>${getCustomerDisplayName(order)}</strong></p>
           </div>
           <div class="info-box">
             <h3>${t('Ngày Lập', 'Date Created')}</h3>
@@ -547,16 +577,16 @@ export default function OrdersPage() {
 
   const handleSaveEdit = async (e: React.FormEvent) => {
     e.preventDefault()
-    
+
     // Kiểm tra địa chỉ nếu đơn hàng ở trạng thái vận chuyển
     const customer = customers.find(c => c.id === editFormData.customer_id)
     if ((editFormData.status === 'shipped' || editFormData.status === 'delivered') && !customer?.address) {
       alert(t('cannotShipNoAddress'))
       return
     }
-    
+
     if (!editingId) return
-    
+
     const updateData = {
       customer_id: editFormData.customer_id,
       customer_name: editFormData.customer_name,
@@ -564,30 +594,48 @@ export default function OrdersPage() {
       payment_status: editFormData.payment_status,
       note: editFormData.note
     }
-    
+
+    const currentOrder = orders.find(order => order.id === editingId)
+    const wasPaid = currentOrder?.payment_status === 'paid'
+    const willBePaid = updateData.payment_status === 'paid'
+    const inventoryDelta: Record<string, number> = {}
+
+    if (currentOrder?.items?.length && wasPaid !== willBePaid) {
+      const direction = willBePaid ? -1 : 1
+      currentOrder.items.forEach(item => {
+        if (!item.product_id) return
+        const qty = Number(item.quantity) || 0
+        inventoryDelta[item.product_id] = (inventoryDelta[item.product_id] || 0) + (qty * direction)
+      })
+    }
+
     // Optimistic update: Update local state immediately
-    setOrders(prevOrders => prevOrders.map(order => 
-      order.id === editingId 
+    setOrders(prevOrders => prevOrders.map(order =>
+      order.id === editingId
         ? { ...order, ...updateData }
         : order
     ))
-    
+
     try {
       const user = authService.getCurrentUser()
       const storeId = user?.store_id || '1'
-      
+
       const response = await apiClient.put(`/orders/${editingId}`, updateData, {
         params: { store_id: storeId }
       })
-      
+
       // Update with real data from API
       const updatedOrder = response.data
-      setOrders(prevOrders => prevOrders.map(order => 
-        order.id === editingId 
+      setOrders(prevOrders => prevOrders.map(order =>
+        order.id === editingId
           ? updatedOrder
           : order
       ))
-      
+
+      if (Object.keys(inventoryDelta).length > 0) {
+        applyInventoryDelta(inventoryDelta)
+      }
+
       alert(t('successUpdateOrder'))
     } catch (error) {
       console.error('Failed to update order', error)
@@ -596,7 +644,7 @@ export default function OrdersPage() {
       alert('Lỗi cập nhật đơn hàng: ' + (error instanceof Error ? error.message : 'Unknown error'))
       return
     }
-    
+
     setShowEditForm(false)
     setEditingId(null)
     setEditFormData({ customer_id: '', customer_name: '', status: 'pending', payment_status: 'pending', note: '', items: [] })
@@ -624,7 +672,7 @@ export default function OrdersPage() {
       {/* Header */}
       <div className="flex justify-between items-center mb-8">
         <h1 className="text-3xl font-bold text-gray-900">{t('Quản lý Đơn Hàng', 'Order Management')}</h1>
-        <Button 
+        <Button
           onClick={() => {
             setShowEditForm(false)
             setShowAddForm(true)
@@ -645,17 +693,16 @@ export default function OrdersPage() {
           <button
             key={status}
             onClick={() => setFilterStatus(status)}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition ${
-              filterStatus === status
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition ${filterStatus === status
                 ? 'bg-indigo-600 text-white'
                 : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
-            }`}
+              }`}
           >
-            {status === '' ? t('Tất Cả Đơn', 'All Orders') : 
-             status === 'draft' ? t('Đơn Nháp', 'Draft Orders') :
-             status === 'confirmed' ? t('Đã Xác Nhận', 'Confirmed Orders') :
-             status === 'shipped' ? t('Đang Giao', 'Shipping Orders') :
-             status === 'delivered' ? t('Đã Giao', 'Delivered Orders') : status}
+            {status === '' ? t('Tất Cả Đơn', 'All Orders') :
+              status === 'draft' ? t('Đơn Nháp', 'Draft Orders') :
+                status === 'confirmed' ? t('Đã Xác Nhận', 'Confirmed Orders') :
+                  status === 'shipped' ? t('Đang Giao', 'Shipping Orders') :
+                    status === 'delivered' ? t('Đã Giao', 'Delivered Orders') : status}
           </button>
         ))}
       </div>
@@ -674,8 +721,8 @@ export default function OrdersPage() {
                   value={formData.customer_id}
                   onChange={(e) => {
                     const customer = customers.find(c => c.id === e.target.value)
-                    setFormData({ 
-                      ...formData, 
+                    setFormData({
+                      ...formData,
                       customer_id: e.target.value,
                       customer_name: customer?.name || ''
                     })
@@ -684,8 +731,8 @@ export default function OrdersPage() {
                   required
                 >
                   <option value="">{t('selectCustomer')}</option>
-                  {customers.map(customer => (
-                    <option key={customer.id} value={customer.id}>
+                  {customers.map((customer, index) => (
+                    <option key={`${customer.id}-${index}`} value={customer.id}>
                       {customer.name} {customer.phone ? `(${customer.phone})` : ''}
                     </option>
                   ))}
@@ -761,8 +808,8 @@ export default function OrdersPage() {
                     value={formData.payment_status || 'pending'}
                     onChange={(e) => {
                       const newPaymentStatus = e.target.value
-                      setFormData({ 
-                        ...formData, 
+                      setFormData({
+                        ...formData,
                         payment_status: newPaymentStatus,
                         // Auto-adjust status when payment changes
                         status: newPaymentStatus === 'paid' ? 'confirmed' : 'draft'
@@ -796,13 +843,13 @@ export default function OrdersPage() {
                       onChange={(e) => {
                         const newStatus = e.target.value
                         const hasAddress = customers.find(c => c.id === formData.customer_id)?.address
-                        
+
                         // Block shipped/delivered nếu không có địa chỉ
                         if ((newStatus === 'shipped' || newStatus === 'delivered') && !hasAddress) {
                           alert(t('noAddressForShipping'))
                           return
                         }
-                        
+
                         setFormData({ ...formData, status: newStatus })
                       }}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg"
@@ -864,108 +911,110 @@ export default function OrdersPage() {
             {orders
               .filter(order => !filterStatus || order.status === filterStatus)
               .map((order, index) => {
-              const orderKey = order.id || order.order_number || `order-${index}`
-              const isExpanded = expandedOrderId === orderKey
+                const baseKey = order.id || (order.order_number && order.created_at
+                  ? `${order.order_number}-${order.created_at}`
+                  : order.order_number)
+                const orderKey = baseKey || `order-${index}`
+                const isExpanded = expandedOrderId === orderKey
 
-              return (
-                <Fragment key={orderKey}>
-                <tr className="hover:bg-gray-50 cursor-pointer" onClick={() => setExpandedOrderId(isExpanded ? null : orderKey)}>
-                  <td className="px-6 py-4 text-sm font-medium text-blue-600">
-                    <div className="flex items-center gap-2">
-                      <span>{isExpanded ? '▼' : '▶'}</span>
-                      {order.order_number}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 text-sm text-gray-900">{order.customer_name}</td>
-                  <td className="px-6 py-4 text-sm font-semibold text-gray-900">
-                    {settingsService.formatCurrency(Number(order.total_amount))}
-                  </td>
-                  <td className="px-6 py-4 text-sm">
-                    {order.payment_status !== 'paid' ? (
-                      <span className="px-3 py-1 rounded-full text-xs font-semibold bg-red-100 text-red-800">
-                        {t('unpaid')}
-                      </span>
-                    ) : (
-                      <span className={`px-3 py-1 rounded-full text-xs font-semibold ${getStatusBadge(order.status)}`}>
-                        {order.status === 'delivered' ? t('delivered') :
-                         order.status === 'shipped' ? t('shipped') :
-                         order.status === 'confirmed' ? t('confirmed') :
-                         order.status === 'pending' ? t('pending') :
-                         order.status === 'draft' ? t('draft') : order.status}
-                      </span>
-                    )}
-                  </td>
-                  <td className="px-6 py-4 text-sm">
-                    <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                      order.payment_status === 'paid' 
-                        ? 'bg-green-100 text-green-800' 
-                        : 'bg-yellow-100 text-yellow-800'
-                    }`}>
-                      {order.payment_status === 'paid' ? t('paid') : t('unpaid')}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 text-sm text-gray-600">
-                    {new Date(order.created_at).toLocaleDateString('vi-VN')}
-                  </td>
-                  <td className="px-6 py-4 text-sm space-x-2" onClick={(e) => e.stopPropagation()}>
-                    <Button variant="outline" size="sm" onClick={() => handlePrintOrder(order)}>🖨️ {t('print')}</Button>
-                    <Button variant="outline" size="sm" onClick={() => handleEditOrder(order)}>{t('edit')}</Button>
-                    <Button variant="outline" size="sm" className="text-red-600" onClick={() => handleDeleteOrder(order.id)}>{t('delete')}</Button>
-                  </td>
-                </tr>
-                
-                {/* Products Details Row */}
-                {isExpanded && (
-                  <tr className="bg-blue-50">
-                    <td colSpan={7} className="px-6 py-4">
-                      <div className="space-y-3">
-                        <h4 className="font-semibold text-sm text-gray-700">Sản Phẩm Đã Đặt:</h4>
-                        <div className="space-y-2">
-                          {order.items && order.items.length > 0 ? (
-                            order.items.map((item, idx) => (
-                              <div key={idx} className="flex justify-between items-center bg-white p-3 rounded border border-blue-200">
-                                <div className="flex-1">
-                                  <span className="font-medium text-gray-800">{item.product_name}</span>
-                                </div>
-                                <div className="flex gap-6">
-                                  <div className="text-right">
-                                    <div className="text-xs text-gray-600">Số lượng</div>
-                                    <div className="font-semibold text-gray-900">{item.quantity}</div>
-                                  </div>
-                                  <div className="text-right">
-                                    <div className="text-xs text-gray-600">Giá</div>
-                                    <div className="font-semibold text-gray-900">{Number(item.unit_price || item.price || 0).toLocaleString()} ₫</div>
-                                  </div>
-                                  <div className="text-right min-w-[100px]">
-                                    <div className="text-xs text-gray-600">Thành tiền</div>
-                                    <div className="font-semibold text-blue-600">{Number(item.subtotal || (item.quantity * (item.unit_price || item.price || 0))).toLocaleString()} ₫</div>
-                                  </div>
-                                </div>
-                              </div>
-                            ))
-                          ) : (
-                            <div className="text-gray-500 text-sm italic">Không có sản phẩm</div>
-                          )}
+                return (
+                  <Fragment key={orderKey}>
+                    <tr className="hover:bg-gray-50 cursor-pointer" onClick={() => setExpandedOrderId(isExpanded ? null : orderKey)}>
+                      <td className="px-6 py-4 text-sm font-medium text-blue-600">
+                        <div className="flex items-center gap-2">
+                          <span>{isExpanded ? '▼' : '▶'}</span>
+                          {order.order_number}
                         </div>
-                      </div>
-                    </td>
-                  </tr>
-                )}
-                
-                {/* Notes Row */}
-                {order.note && (
-                  <tr className="bg-gray-50">
-                    <td colSpan={7} className="px-6 py-3">
-                      <div className="flex items-start gap-3">
-                        <span className="text-xs font-semibold text-gray-700 uppercase pt-1">Ghi Chú:</span>
-                        <span className="text-sm text-gray-700 flex-1">{order.note}</span>
-                      </div>
-                    </td>
-                  </tr>
-                )}
-              </Fragment>
-              )
-            })}
+                      </td>
+                      <td className="px-6 py-4 text-sm text-gray-900">{getCustomerDisplayName(order)}</td>
+                      <td className="px-6 py-4 text-sm font-semibold text-gray-900">
+                        {settingsService.formatCurrency(Number(order.total_amount))}
+                      </td>
+                      <td className="px-6 py-4 text-sm">
+                        {order.payment_status !== 'paid' ? (
+                          <span className="px-3 py-1 rounded-full text-xs font-semibold bg-red-100 text-red-800">
+                            {t('unpaid')}
+                          </span>
+                        ) : (
+                          <span className={`px-3 py-1 rounded-full text-xs font-semibold ${getStatusBadge(order.status)}`}>
+                            {order.status === 'delivered' ? t('delivered') :
+                              order.status === 'shipped' ? t('shipped') :
+                                order.status === 'confirmed' ? t('confirmed') :
+                                  order.status === 'pending' ? t('pending') :
+                                    order.status === 'draft' ? t('draft') : order.status}
+                          </span>
+                        )}
+                      </td>
+                      <td className="px-6 py-4 text-sm">
+                        <span className={`px-3 py-1 rounded-full text-xs font-semibold ${order.payment_status === 'paid'
+                            ? 'bg-green-100 text-green-800'
+                            : 'bg-yellow-100 text-yellow-800'
+                          }`}>
+                          {order.payment_status === 'paid' ? t('paid') : t('unpaid')}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 text-sm text-gray-600">
+                        {new Date(order.created_at).toLocaleDateString('vi-VN')}
+                      </td>
+                      <td className="px-6 py-4 text-sm space-x-2" onClick={(e) => e.stopPropagation()}>
+                        <Button variant="outline" size="sm" onClick={() => handlePrintOrder(order)}>🖨️ {t('print')}</Button>
+                        <Button variant="outline" size="sm" onClick={() => handleEditOrder(order)}>{t('edit')}</Button>
+                        <Button variant="outline" size="sm" className="text-red-600" onClick={() => handleDeleteOrder(order.id)}>{t('delete')}</Button>
+                      </td>
+                    </tr>
+
+                    {/* Products Details Row */}
+                    {isExpanded && (
+                      <tr className="bg-blue-50">
+                        <td colSpan={7} className="px-6 py-4">
+                          <div className="space-y-3">
+                            <h4 className="font-semibold text-sm text-gray-700">Sản Phẩm Đã Đặt:</h4>
+                            <div className="space-y-2">
+                              {order.items && order.items.length > 0 ? (
+                                order.items.map((item, idx) => (
+                                  <div key={idx} className="flex justify-between items-center bg-white p-3 rounded border border-blue-200">
+                                    <div className="flex-1">
+                                      <span className="font-medium text-gray-800">{item.product_name}</span>
+                                    </div>
+                                    <div className="flex gap-6">
+                                      <div className="text-right">
+                                        <div className="text-xs text-gray-600">Số lượng</div>
+                                        <div className="font-semibold text-gray-900">{item.quantity}</div>
+                                      </div>
+                                      <div className="text-right">
+                                        <div className="text-xs text-gray-600">Giá</div>
+                                        <div className="font-semibold text-gray-900">{Number(item.unit_price || item.price || 0).toLocaleString()} ₫</div>
+                                      </div>
+                                      <div className="text-right min-w-[100px]">
+                                        <div className="text-xs text-gray-600">Thành tiền</div>
+                                        <div className="font-semibold text-blue-600">{Number(item.subtotal || (item.quantity * (item.unit_price || item.price || 0))).toLocaleString()} ₫</div>
+                                      </div>
+                                    </div>
+                                  </div>
+                                ))
+                              ) : (
+                                <div className="text-gray-500 text-sm italic">Không có sản phẩm</div>
+                              )}
+                            </div>
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+
+                    {/* Notes Row */}
+                    {order.note && (
+                      <tr className="bg-gray-50">
+                        <td colSpan={7} className="px-6 py-3">
+                          <div className="flex items-start gap-3">
+                            <span className="text-xs font-semibold text-gray-700 uppercase pt-1">Ghi Chú:</span>
+                            <span className="text-sm text-gray-700 flex-1">{order.note}</span>
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+                  </Fragment>
+                )
+              })}
           </tbody>
         </table>
       </div>
@@ -983,8 +1032,8 @@ export default function OrdersPage() {
                   value={editFormData.customer_id}
                   onChange={(e) => {
                     const customer = customers.find(c => c.id === e.target.value)
-                    setEditFormData({ 
-                      ...editFormData, 
+                    setEditFormData({
+                      ...editFormData,
                       customer_id: e.target.value,
                       customer_name: customer?.name || ''
                     })
@@ -993,8 +1042,8 @@ export default function OrdersPage() {
                   required
                 >
                   <option value="">{t('selectCustomer')}</option>
-                  {customers.map(customer => (
-                    <option key={customer.id} value={customer.id}>
+                  {customers.map((customer, index) => (
+                    <option key={`${customer.id}-${index}`} value={customer.id}>
                       {customer.name} {customer.phone ? `(${customer.phone})` : ''}
                     </option>
                   ))}
@@ -1040,13 +1089,13 @@ export default function OrdersPage() {
                     onChange={(e) => {
                       const newStatus = e.target.value
                       const hasAddress = customers.find(c => c.id === editFormData.customer_id)?.address
-                      
+
                       // Block shipped/delivered nếu không có địa chỉ
                       if ((newStatus === 'shipped' || newStatus === 'delivered') && !hasAddress) {
                         alert('⚠️ Khách hàng chưa có địa chỉ giao hàng!\nVui lòng cập nhật địa chỉ trước khi chuyển sang trạng thái vận chuyển.')
                         return
                       }
-                      
+
                       setEditFormData({ ...editFormData, status: newStatus })
                     }}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg"

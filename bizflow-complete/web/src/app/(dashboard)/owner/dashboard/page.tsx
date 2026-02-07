@@ -7,16 +7,16 @@ import apiClient from '@/services/api.service'
 import { authService } from '@/services/auth.service'
 import { settingsService } from '@/services/settings.service'
 import { getTranslation, translations } from '@/config/translations'
-import { 
-  Smile, 
-  TrendingUp, 
-  Package, 
-  Users, 
-  DollarSign, 
-  Check, 
-  Truck, 
-  Clock, 
-  AlertCircle, 
+import {
+  Smile,
+  TrendingUp,
+  Package,
+  Users,
+  DollarSign,
+  Check,
+  Truck,
+  Clock,
+  AlertCircle,
   CreditCard,
   Bell,
   Wallet,
@@ -53,15 +53,15 @@ export default function OwnerDashboard() {
     // Calculate order statistics by status
     const stats = {
       delivered: orders.filter(o => o.status === 'delivered').length,
-      shipped: orders.filter(o => o.status === 'shipped').length,
+      shipped: orders.filter(o => o.status === 'shipped' || o.status === 'confirmed').length,
       pending: orders.filter(o => o.status === 'pending' || o.status === 'draft').length,
       total: orders.length
     }
     setOrderStats(stats)
-    
+
     const today = new Date()
     today.setHours(0, 0, 0, 0)
-    
+
     // Calculate alerts
     const pendingOrders = orders.filter(o => o.status === 'pending' || o.status === 'draft').length
     const unpaidOrders = orders.filter(o => o.payment_status === 'unpaid' || o.payment_status === 'pending').length
@@ -73,10 +73,10 @@ export default function OwnerDashboard() {
       }
       return false
     }).length
-    
+
     const totalDebt = customers?.reduce((sum: number, c: any) => sum + (c.outstanding_debt || 0), 0) || 0
     const hasDebt = totalDebt > 0
-    
+
     const alertsList = []
     if (pendingOrders > 0) {
       alertsList.push({ type: 'pending', count: pendingOrders, messageKey: 'pendingOrders', color: 'yellow', iconType: 'clock' })
@@ -90,28 +90,28 @@ export default function OwnerDashboard() {
     if (hasDebt) {
       alertsList.push({ type: 'debt', count: Math.round(totalDebt / 1000000), messageKey: 'debtAmount', color: 'amber', iconType: 'wallet' })
     }
-    
+
     if (alertsList.length === 0) {
       alertsList.push({ type: 'ok', count: 0, messageKey: 'allGood', color: 'green', iconType: 'check' })
     }
-    
+
     setAlerts(alertsList)
-    
+
     // Calculate quick stats
     const todayOrders = orders.filter(o => {
       const orderDate = new Date(o.created_at)
       orderDate.setHours(0, 0, 0, 0)
       return orderDate.getTime() === today.getTime()
     })
-    
+
     const todayRevenue = todayOrders
       .filter(o => o.payment_status === 'paid')
       .reduce((sum: number, o: any) => sum + (o.total_amount || 0), 0)
-    
+
     const pendingPayments = orders
       .filter(o => o.payment_status === 'unpaid' || o.payment_status === 'pending')
       .reduce((sum: number, o: any) => sum + (o.total_amount || 0), 0)
-    
+
     setQuickStats({
       todayRevenue,
       todayOrders: todayOrders.length,
@@ -124,24 +124,24 @@ export default function OwnerDashboard() {
     try {
       const user = authService.getCurrentUser()
       const storeId = user?.store_id || '1'
-      
+
       try {
         const [ordersRes, customersRes] = await Promise.all([
           apiClient.get('/orders', { params: { store_id: storeId } }),
           apiClient.get('/customers', { params: { store_id: storeId } })
         ])
-        
+
         const orders = ordersRes.data.orders || ordersRes.data || []
         const customers = customersRes.data.customers || customersRes.data || []
-        
+
         const totalRevenue = orders
           .filter((o: any) => o.payment_status === 'paid')
           .reduce((sum: number, o: any) => sum + (o.total_amount || 0), 0)
-        
+
         const totalOrders = orders.length
         const totalCustomers = new Set(orders.map((o: any) => o.customer_name)).size
         const totalDebt = customers.reduce((sum: number, c: any) => sum + (c.outstanding_debt || 0), 0)
-        
+
         setMetrics({
           totalRevenue,
           totalOrders,
@@ -152,7 +152,7 @@ export default function OwnerDashboard() {
           weekGrowthCustomers: 8,
           weekGrowthDebt: -3,
         })
-        
+
         setRecentOrders(orders.slice(0, 5))
         calculateAlertsAndStats(orders, customers)
       } catch (apiError) {
@@ -167,7 +167,7 @@ export default function OwnerDashboard() {
           weekGrowthCustomers: 8,
           weekGrowthDebt: -3,
         })
-        
+
         const mockOrders = [
           { id: 'ORD-001', order_number: 'ORD-001', customer_name: 'Nguyễn Văn A', status: 'delivered', payment_status: 'paid', total_amount: 40000, created_at: '2026-01-21T10:30:00' },
           { id: 'ORD-002', order_number: 'ORD-002', customer_name: 'Trần Thị B', status: 'delivered', payment_status: 'paid', total_amount: 35000, created_at: '2026-01-21T09:15:00' },
@@ -288,7 +288,7 @@ export default function OwnerDashboard() {
             <div className="flex items-start justify-between mb-4">
               <div>
                 <p className="text-gray-600 text-sm font-medium">{t('outstandingDebt')}</p>
-                <p className="text-3xl font-bold text-gray-900 mt-2">{(metrics.totalDebt / 1000000).toFixed(1)}M</p>
+                <p className="text-3xl font-bold text-gray-900 mt-2">{settingsService.formatCurrency(metrics.totalDebt)}</p>
               </div>
               <div className="bg-gradient-to-br from-amber-100 to-amber-50 p-3 rounded-lg group-hover:from-amber-200 group-hover:to-amber-100 transition">
                 <Wallet className="w-6 h-6 text-amber-600" />
@@ -324,7 +324,7 @@ export default function OwnerDashboard() {
               <div className="flex items-center justify-between p-4 bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg border border-green-200 hover:shadow-md transition cursor-pointer" onClick={() => router.push('/owner/orders')}>
                 <div className="flex items-center gap-3">
                   <div className="w-12 h-12 bg-green-500 rounded-full flex items-center justify-center">
-                  <Check className="w-7 h-7 text-white" />
+                    <Check className="w-7 h-7 text-white" />
                   </div>
                   <div>
                     <p className="text-sm text-gray-600 font-medium">{t('delivered')}</p>
@@ -339,7 +339,7 @@ export default function OwnerDashboard() {
               <div className="flex items-center justify-between p-4 bg-gradient-to-r from-blue-50 to-cyan-50 rounded-lg border border-blue-200 hover:shadow-md transition cursor-pointer" onClick={() => router.push('/owner/orders')}>
                 <div className="flex items-center gap-3">
                   <div className="w-12 h-12 bg-blue-500 rounded-full flex items-center justify-center">
-                  <Truck className="w-7 h-7 text-white" />
+                    <Truck className="w-7 h-7 text-white" />
                   </div>
                   <div>
                     <p className="text-sm text-gray-600 font-medium">{t('shippedOrders')}</p>
@@ -354,7 +354,7 @@ export default function OwnerDashboard() {
               <div className="flex items-center justify-between p-4 bg-gradient-to-r from-yellow-50 to-amber-50 rounded-lg border border-yellow-200 hover:shadow-md transition cursor-pointer" onClick={() => router.push('/owner/orders')}>
                 <div className="flex items-center gap-3">
                   <div className="w-12 h-12 bg-yellow-500 rounded-full flex items-center justify-center">
-                  <Clock className="w-7 h-7 text-white" />
+                    <Clock className="w-7 h-7 text-white" />
                   </div>
                   <div>
                     <p className="text-sm text-gray-600 font-medium">{t('pendingConfirm')}</p>
@@ -382,7 +382,7 @@ export default function OwnerDashboard() {
                   <div>
                     <p className="text-xs text-gray-600 font-medium">{t('todayRevenue')}</p>
                     <p className="text-2xl font-bold text-emerald-700 mt-1">
-                      {(quickStats.todayRevenue / 1000).toFixed(0)}k
+                      {settingsService.formatCurrency(quickStats.todayRevenue)}
                     </p>
                   </div>
                   <div className="w-12 h-12 bg-gradient-to-br from-emerald-100 to-emerald-50 rounded-full flex items-center justify-center">
@@ -408,7 +408,7 @@ export default function OwnerDashboard() {
                   <div>
                     <p className="text-xs text-gray-600 font-medium">{t('pendingPayments')}</p>
                     <p className="text-2xl font-bold text-amber-700 mt-1">
-                      {(quickStats.pendingPayments / 1000).toFixed(0)}k
+                      {settingsService.formatCurrency(quickStats.pendingPayments)}
                     </p>
                   </div>
                   <div className="w-12 h-12 bg-gradient-to-br from-amber-100 to-amber-50 rounded-full flex items-center justify-center">
@@ -430,15 +430,14 @@ export default function OwnerDashboard() {
             </div>
             <div className="space-y-3">
               {alerts.map((alert, idx) => (
-                <div 
-                  key={idx} 
-                  className={`flex items-center justify-between p-4 rounded-lg border-2 cursor-pointer transition hover:shadow-md ${
-                    alert.color === 'yellow' ? 'bg-yellow-50 border-yellow-300 hover:bg-yellow-100' :
-                    alert.color === 'red' ? 'bg-red-50 border-red-300 hover:bg-red-100' :
-                    alert.color === 'orange' ? 'bg-orange-50 border-orange-300 hover:bg-orange-100' :
-                    alert.color === 'amber' ? 'bg-amber-50 border-amber-300 hover:bg-amber-100' :
-                    'bg-green-50 border-green-300 hover:bg-green-100'
-                  }`}
+                <div
+                  key={idx}
+                  className={`flex items-center justify-between p-4 rounded-lg border-2 cursor-pointer transition hover:shadow-md ${alert.color === 'yellow' ? 'bg-yellow-50 border-yellow-300 hover:bg-yellow-100' :
+                      alert.color === 'red' ? 'bg-red-50 border-red-300 hover:bg-red-100' :
+                        alert.color === 'orange' ? 'bg-orange-50 border-orange-300 hover:bg-orange-100' :
+                          alert.color === 'amber' ? 'bg-amber-50 border-amber-300 hover:bg-amber-100' :
+                            'bg-green-50 border-green-300 hover:bg-green-100'
+                    }`}
                   onClick={() => {
                     if (alert.type === 'pending' || alert.type === 'unpaid' || alert.type === 'delayed') {
                       router.push('/owner/orders')
@@ -448,28 +447,22 @@ export default function OwnerDashboard() {
                   }}
                 >
                   <div className="flex items-center gap-3">
-                    <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                      alert.color === 'yellow' ? 'bg-yellow-200' :
-                      alert.color === 'red' ? 'bg-red-200' :
-                      alert.color === 'orange' ? 'bg-orange-200' :
-                      alert.color === 'amber' ? 'bg-amber-200' :
-                      'bg-green-200'
-                    }`}>
-                      {alert.iconType === 'clock' && <Clock className={`w-6 h-6 ${
-                        alert.color === 'yellow' ? 'text-yellow-700' : 'text-gray-700'
-                      }`} />}
-                      {alert.iconType === 'credit-card' && <CreditCard className={`w-6 h-6 ${
-                        alert.color === 'red' ? 'text-red-700' : 'text-gray-700'
-                      }`} />}
-                      {alert.iconType === 'alert-circle' && <AlertCircle className={`w-6 h-6 ${
-                        alert.color === 'orange' ? 'text-orange-700' : 'text-gray-700'
-                      }`} />}
-                      {alert.iconType === 'wallet' && <Wallet className={`w-6 h-6 ${
-                        alert.color === 'amber' ? 'text-amber-700' : 'text-gray-700'
-                      }`} />}
-                      {alert.iconType === 'check' && <Check className={`w-6 h-6 ${
-                        alert.color === 'green' ? 'text-green-700' : 'text-gray-700'
-                      }`} />}
+                    <div className={`w-10 h-10 rounded-full flex items-center justify-center ${alert.color === 'yellow' ? 'bg-yellow-200' :
+                        alert.color === 'red' ? 'bg-red-200' :
+                          alert.color === 'orange' ? 'bg-orange-200' :
+                            alert.color === 'amber' ? 'bg-amber-200' :
+                              'bg-green-200'
+                      }`}>
+                      {alert.iconType === 'clock' && <Clock className={`w-6 h-6 ${alert.color === 'yellow' ? 'text-yellow-700' : 'text-gray-700'
+                        }`} />}
+                      {alert.iconType === 'credit-card' && <CreditCard className={`w-6 h-6 ${alert.color === 'red' ? 'text-red-700' : 'text-gray-700'
+                        }`} />}
+                      {alert.iconType === 'alert-circle' && <AlertCircle className={`w-6 h-6 ${alert.color === 'orange' ? 'text-orange-700' : 'text-gray-700'
+                        }`} />}
+                      {alert.iconType === 'wallet' && <Wallet className={`w-6 h-6 ${alert.color === 'amber' ? 'text-amber-700' : 'text-gray-700'
+                        }`} />}
+                      {alert.iconType === 'check' && <Check className={`w-6 h-6 ${alert.color === 'green' ? 'text-green-700' : 'text-gray-700'
+                        }`} />}
                     </div>
                     <div>
                       <p className="text-sm font-semibold text-gray-900">{t(alert.messageKey as keyof typeof translations.en)}</p>
@@ -479,13 +472,12 @@ export default function OwnerDashboard() {
                     </div>
                   </div>
                   {alert.count > 0 && alert.type !== 'ok' && (
-                    <div className={`text-2xl font-bold ${
-                      alert.color === 'yellow' ? 'text-yellow-700' :
-                      alert.color === 'red' ? 'text-red-700' :
-                      alert.color === 'orange' ? 'text-orange-700' :
-                      alert.color === 'amber' ? 'text-amber-700' :
-                      'text-green-700'
-                    }`}>
+                    <div className={`text-2xl font-bold ${alert.color === 'yellow' ? 'text-yellow-700' :
+                        alert.color === 'red' ? 'text-red-700' :
+                          alert.color === 'orange' ? 'text-orange-700' :
+                            alert.color === 'amber' ? 'text-amber-700' :
+                              'text-green-700'
+                      }`}>
                       {alert.count}
                     </div>
                   )}
@@ -499,12 +491,12 @@ export default function OwnerDashboard() {
         <div className="bg-white rounded-xl shadow-lg overflow-hidden">
           <div className="px-6 py-4 border-b bg-gradient-to-r from-gray-50 to-gray-100">
             <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2 mb-6">
-              <div className="w-10 h-10 bg-gradient-to-br from-gray-500 to-gray-400 rounded-lg flex items-center justify-center">
-                <ClipboardList className="w-6 h-6 text-white" />
+              <div className="flex items-center gap-2 mb-6">
+                <div className="w-10 h-10 bg-gradient-to-br from-gray-500 to-gray-400 rounded-lg flex items-center justify-center">
+                  <ClipboardList className="w-6 h-6 text-white" />
+                </div>
+                <h2 className="text-xl font-bold text-gray-900">{t('recentOrders')}</h2>
               </div>
-              <h2 className="text-xl font-bold text-gray-900">{t('recentOrders')}</h2>
-            </div>
               <button
                 onClick={() => router.push('/owner/orders')}
                 className="text-sm text-indigo-600 hover:text-indigo-700 font-semibold hover:underline"
@@ -529,19 +521,21 @@ export default function OwnerDashboard() {
                   <td className="px-6 py-4 text-sm font-bold text-indigo-600">{order.order_number || `ORD-${order.id}`}</td>
                   <td className="px-6 py-4 text-sm font-medium text-gray-900">{order.customer_name}</td>
                   <td className="px-6 py-4 text-sm">
-                    <span className={`px-3 py-1 rounded-full text-xs font-bold inline-flex items-center gap-1.5 ${
-                      order.status === 'delivered' ? 'bg-green-100 text-green-800' :
-                      order.status === 'shipped' ? 'bg-blue-100 text-blue-800' :
-                      order.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
-                      'bg-gray-100 text-gray-800'
-                    }`}>
+                    <span className={`px-3 py-1 rounded-full text-xs font-bold inline-flex items-center gap-1.5 ${order.status === 'delivered' ? 'bg-green-100 text-green-800' :
+                        order.status === 'confirmed' ? 'bg-blue-100 text-blue-800' :
+                          order.status === 'shipped' ? 'bg-blue-100 text-blue-800' :
+                            order.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                              'bg-gray-100 text-gray-800'
+                      }`}>
                       {order.status === 'delivered' && <Check className="w-3.5 h-3.5" />}
+                      {order.status === 'confirmed' && <Check className="w-3.5 h-3.5" />}
                       {order.status === 'shipped' && <Truck className="w-3.5 h-3.5" />}
                       {order.status === 'pending' && <Clock className="w-3.5 h-3.5" />}
                       {order.status === 'delivered' ? t('delivered') :
-                       order.status === 'shipped' ? t('shipping') :
-                       order.status === 'pending' ? t('pending') :
-                       t('draft')}
+                        order.status === 'confirmed' ? t('confirmed') :
+                          order.status === 'shipped' ? t('shipping') :
+                            order.status === 'pending' ? t('pending') :
+                              t('draft')}
                     </span>
                   </td>
                   <td className="px-6 py-4 text-sm font-bold text-gray-900">{settingsService.formatCurrency(order.total_amount || 0)}</td>

@@ -49,7 +49,7 @@ export default function CustomersPage() {
   const fetchCustomers = async () => {
     const user = authService.getCurrentUser()
     const storeId = user?.store_id || '1'
-    
+
     try {
       setLoading(true)
       const response = await apiClient.get('/customers', {
@@ -67,7 +67,7 @@ export default function CustomersPage() {
     } finally {
       setLoading(false)
     }
-    
+
     const mockCustomers = [
       {
         id: 'CUST001',
@@ -96,10 +96,10 @@ export default function CustomersPage() {
 
   const handleAddCustomer = async (e: React.FormEvent) => {
     e.preventDefault()
-    
+
     const user = authService.getCurrentUser()
     const storeId = user?.store_id || '1'
-    
+
     try {
       await apiClient.post('/customers', {
         name: formData.name,
@@ -113,7 +113,7 @@ export default function CustomersPage() {
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Unknown error'
       console.warn('Customer POST failed, using optimistic local add. Reason:', message)
-      
+
       const optimisticCustomer: Customer = {
         id: `local-${Date.now()}`,
         name: formData.name,
@@ -123,11 +123,11 @@ export default function CustomersPage() {
         total_purchases: 0,
         outstanding_debt: 0
       }
-      
+
       setCustomers([optimisticCustomer, ...customers])
       alert(tKey('successAddCustomer') + ' (Offline)')
     }
-    
+
     setShowAddForm(false)
     setFormData({ name: '', phone: '', address: '', email: '' })
     await fetchCustomers()
@@ -135,13 +135,13 @@ export default function CustomersPage() {
 
   const handleDeleteCustomer = async (id: string) => {
     if (!confirm(tKey('confirmDeleteCustomer'))) return
-    
+
     setCustomers(current => current.filter(c => c.id !== id))
-    
+
     if (customersFromApi) {
       const user = authService.getCurrentUser()
       const storeId = user?.store_id || '1'
-      
+
       try {
         await apiClient.delete(`/customers/${id}`, {
           params: { store_id: storeId }
@@ -167,10 +167,10 @@ export default function CustomersPage() {
 
   const handleSaveEdit = async (e: React.FormEvent) => {
     e.preventDefault()
-    
+
     const user = authService.getCurrentUser()
     const storeId = user?.store_id || '1'
-    
+
     try {
       await apiClient.put(`/customers/${editingId}`, {
         name: formData.name,
@@ -184,7 +184,7 @@ export default function CustomersPage() {
       const message = error instanceof Error ? error.message : 'Unknown error'
       console.warn('Customer PUT failed, changes may not persist. Reason:', message)
     }
-    
+
     setShowEditForm(false)
     setEditingId(null)
     setFormData({ name: '', phone: '', address: '', email: '' })
@@ -203,7 +203,7 @@ export default function CustomersPage() {
       {/* Header */}
       <div className="flex justify-between items-center mb-8">
         <h1 className="text-3xl font-bold text-gray-900">{tKey('customerManagement')}</h1>
-        <Button 
+        <Button
           onClick={() => setShowAddForm(true)}
           size="md"
           className="rounded-full px-6 py-2.5"
@@ -301,8 +301,8 @@ export default function CustomersPage() {
             </tr>
           </thead>
           <tbody className="divide-y">
-            {filteredCustomers.map((customer) => (
-              <tr key={customer.id} className="hover:bg-gray-50">
+            {filteredCustomers.map((customer, index) => (
+              <tr key={`${customer.id}-${index}`} className="hover:bg-gray-50">
                 <td className="px-6 py-4 text-sm font-medium text-gray-900">{customer.name}</td>
                 <td className="px-6 py-4 text-sm text-gray-600">{customer.phone}</td>
                 <td className="px-6 py-4 text-sm text-gray-600">{customer.address || '-'}</td>

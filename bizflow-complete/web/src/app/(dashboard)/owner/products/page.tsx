@@ -49,28 +49,33 @@ export default function ProductsPage() {
 
   const fetchProducts = async () => {
     const user = authService.getCurrentUser()
-    const storeId = user?.store_id || '1'
+    const storeId = user?.store_id
+    if (!storeId) {
+      setProducts([])
+      setLoading(false)
+      return
+    }
 
     try {
       const response = await apiClient.get('/products', {
         params: { store_id: storeId }
       })
       const data = response.data.products || response.data || []
-      
+
       // Apply optimistic quantity updates from localStorage (for inventory imports)
-      const optimisticUpdates = typeof window !== 'undefined' 
+      const optimisticUpdates = typeof window !== 'undefined'
         ? JSON.parse(localStorage.getItem('productQuantityUpdates') || '{}')
         : {}
-      
-      const updatedProducts = Array.isArray(data) 
+
+      const updatedProducts = Array.isArray(data)
         ? data.map((p: Product) => ({
-            ...p,
-            quantity_in_stock: optimisticUpdates[p.id] !== undefined 
-              ? optimisticUpdates[p.id] 
-              : p.quantity_in_stock
-          }))
+          ...p,
+          quantity_in_stock: optimisticUpdates[p.id] !== undefined
+            ? optimisticUpdates[p.id]
+            : p.quantity_in_stock
+        }))
         : []
-      
+
       setProducts(updatedProducts)
       return
     } catch (error) {
@@ -168,11 +173,11 @@ export default function ProductsPage() {
 
   const handleDeleteProduct = async (productId: string) => {
     if (!window.confirm(t('confirmDelete'))) return
-    
+
     try {
       const user = authService.getCurrentUser()
       const storeId = user?.store_id || '1'
-      
+
       await apiClient.delete(`/products/${productId}`, {
         params: { store_id: storeId }
       })
@@ -206,7 +211,7 @@ export default function ProductsPage() {
     try {
       const user = authService.getCurrentUser()
       const storeId = user?.store_id || '1'
-      
+
       await apiClient.put(`/products/${editingId}`, {
         name: formData.name,
         sku: formData.sku,
@@ -219,6 +224,11 @@ export default function ProductsPage() {
       }, {
         params: { store_id: storeId }
       })
+      if (typeof window !== 'undefined') {
+        const optimisticUpdates = JSON.parse(localStorage.getItem('productQuantityUpdates') || '{}')
+        delete optimisticUpdates[editingId]
+        localStorage.setItem('productQuantityUpdates', JSON.stringify(optimisticUpdates))
+      }
       setShowEditForm(false)
       setEditingId(null)
       fetchProducts()
@@ -235,7 +245,7 @@ export default function ProductsPage() {
     try {
       const user = authService.getCurrentUser()
       const storeId = user?.store_id || '1'
-      
+
       await apiClient.post('/products', {
         name: formData.name,
         sku: formData.sku,
@@ -279,7 +289,7 @@ export default function ProductsPage() {
       {/* Header */}
       <div className="flex justify-between items-center mb-8">
         <h1 className="text-3xl font-bold text-gray-900">{t('productManagement')}</h1>
-        <Button 
+        <Button
           onClick={() => setShowAddForm(true)}
           size="md"
           className="rounded-full px-6 py-2.5"
@@ -391,16 +401,16 @@ export default function ProductsPage() {
                   {product.quantity_in_stock} {product.unit_of_measure}
                 </td>
                 <td className="px-6 py-4 text-sm space-x-2">
-                  <Button 
-                    variant="outline" 
+                  <Button
+                    variant="outline"
                     size="sm"
                     onClick={() => handleEditProduct(product)}
                   >
                     {t('edit')}
                   </Button>
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
+                  <Button
+                    variant="outline"
+                    size="sm"
                     className="text-red-600"
                     onClick={() => handleDeleteProduct(product.id)}
                   >

@@ -73,6 +73,10 @@ export default function AdminDashboard() {
     try {
       const user = authService.getCurrentUser()
       const storeId = user?.store_id || '1'
+      let orders: any[] = []
+      let products: any[] = []
+      let customers: any[] = []
+      let employeesData: Employee[] = []
 
       // Fetch store info from API or fallback to user data
       try {
@@ -85,7 +89,7 @@ export default function AdminDashboard() {
         console.error('Failed to fetch store info from API, using fallback:', err)
         // Fallback to user data if API fails
       }
-      
+
       // Always ensure storeInfo is set from user data if not already set
       if (!storeInfo && user) {
         const fallback = {
@@ -107,11 +111,12 @@ export default function AdminDashboard() {
         const empRes = await apiClient.get('/users', { params: { store_id: storeId } })
         const empData = empRes.data.users || empRes.data || []
         console.log('Users response:', empRes.data)
-        setEmployees(Array.isArray(empData) ? empData : [])
+        employeesData = Array.isArray(empData) ? empData : []
+        setEmployees(employeesData)
       } catch (empError) {
         console.error('Failed to fetch employees:', empError)
         // Use mock employees fallback
-        const mockEmps = [
+        employeesData = [
           {
             id: 'emp_001',
             name: 'Nguyễn Văn Nhân Viên',
@@ -129,7 +134,7 @@ export default function AdminDashboard() {
             status: 'active'
           }
         ]
-        setEmployees(mockEmps)
+        setEmployees(employeesData)
       }
 
       // Fetch orders for metrics
@@ -138,10 +143,23 @@ export default function AdminDashboard() {
         const ordersRes = await apiClient.get('/orders', { params: { store_id: storeId } })
         const ordersData = ordersRes.data.orders || ordersRes.data || []
         console.log('Orders response:', ordersRes.data)
-        setRecentOrders(Array.isArray(ordersData) ? ordersData.slice(-10) : [])
+        orders = Array.isArray(ordersData) ? ordersData : []
+        setRecentOrders(orders.slice(-10))
       } catch (orderError) {
         console.error('Failed to fetch orders:', orderError)
         setRecentOrders([])
+      }
+
+      // Fetch customers
+      try {
+        console.log(`Fetching customers for store: ${storeId}`)
+        const customersRes = await apiClient.get('/customers', { params: { store_id: storeId } })
+        const customersData = customersRes.data.customers || customersRes.data || []
+        console.log('Customers response:', customersRes.data)
+        customers = Array.isArray(customersData) ? customersData : []
+      } catch (customerError) {
+        console.error('Failed to fetch customers:', customerError)
+        customers = []
       }
 
       // Fetch products
@@ -150,38 +168,37 @@ export default function AdminDashboard() {
         const productsRes = await apiClient.get('/products', { params: { store_id: storeId } })
         const productsData = productsRes.data.products || productsRes.data || []
         console.log('Products response:', productsRes.data)
-        // Use products for metrics calculation
-        const products = Array.isArray(productsData) ? productsData : []
-        
-        // Get orders (already fetched above or use empty)
-        const orders: any[] = []
-
-        // Calculate metrics
-        const totalRevenue = orders.reduce((sum: number, order: any) => 
-          order.payment_status === 'paid' ? sum + (order.total_amount || 0) : sum, 0
-        )
-
-        const totalOrders = orders.length
-        const paidOrders = orders.filter((o: any) => o.payment_status === 'paid').length
-        const unpaidOrders = orders.filter((o: any) => o.payment_status === 'pending').length
-
-        const metrics: StoreMetrics = {
-          total_revenue: totalRevenue,
-          total_orders: totalOrders,
-          total_customers: new Set(orders.map((o: any) => o.customer_id || o.customer_name)).size,
-          total_products: products.length,
-          total_employees: employees.length,
-          paid_orders: paidOrders,
-          unpaid_orders: unpaidOrders,
-          low_stock_products: products.filter((p: any) => p.quantity_in_stock <= 10 && p.quantity_in_stock > 0).length,
-          out_of_stock_products: products.filter((p: any) => p.quantity_in_stock === 0).length,
-          monthly_growth: totalRevenue > 0 ? 12.5 : 0
-        }
-
-        setMetrics(metrics)
+        products = Array.isArray(productsData) ? productsData : []
       } catch (productError) {
         console.error('Failed to fetch products:', productError)
       }
+
+      // Calculate metrics after data is gathered
+      const totalRevenue = orders.reduce((sum: number, order: any) =>
+        order.payment_status === 'paid' ? sum + (order.total_amount || 0) : sum, 0
+      )
+
+      const totalOrders = orders.length
+      const paidOrders = orders.filter((o: any) => o.payment_status === 'paid').length
+      const unpaidOrders = orders.filter((o: any) => o.payment_status !== 'paid').length
+      const totalCustomers = customers.length > 0
+        ? customers.length
+        : new Set(orders.map((o: any) => o.customer_id || o.customer_name)).size
+
+      const metrics: StoreMetrics = {
+        total_revenue: totalRevenue,
+        total_orders: totalOrders,
+        total_customers: totalCustomers,
+        total_products: products.length,
+        total_employees: employeesData.length,
+        paid_orders: paidOrders,
+        unpaid_orders: unpaidOrders,
+        low_stock_products: products.filter((p: any) => p.quantity_in_stock <= 10 && p.quantity_in_stock > 0).length,
+        out_of_stock_products: products.filter((p: any) => p.quantity_in_stock === 0).length,
+        monthly_growth: totalRevenue > 0 ? 12.5 : 0
+      }
+
+      setMetrics(metrics)
     } catch (error) {
       console.error('Failed to fetch admin data', error)
     } finally {
@@ -191,22 +208,22 @@ export default function AdminDashboard() {
 
   const handleSaveStore = async () => {
     if (!editFormData) return
-    
+
     setSavingStore(true)
     try {
       const user = authService.getCurrentUser()
       const storeId = user?.store_id || '1'
-      
+
       await apiClient.put('/store/info', {
         store_name: editFormData.store_name,
         owner_name: editFormData.owner_name,
         email: editFormData.email,
         phone: editFormData.phone,
         address: editFormData.address
-      }, { 
+      }, {
         params: { store_id: storeId }
       })
-      
+
       setStoreInfo(editFormData)
       setEditingStore(false)
       // Optionally show success message
@@ -524,14 +541,13 @@ export default function AdminDashboard() {
                         {formatCurrency(order.total_amount)}
                       </td>
                       <td className="px-6 py-4">
-                        <span className={`px-3 py-1 rounded-full text-sm inline-flex items-center gap-2 ${
-                          order.status === 'delivered' ? 'bg-green-100 text-green-800' :
-                          order.status === 'completed' ? 'bg-green-100 text-green-800' :
-                          order.status === 'shipped' ? 'bg-blue-100 text-blue-800' :
-                          order.status === 'confirmed' ? 'bg-indigo-100 text-indigo-800' :
-                          order.status === 'cancelled' ? 'bg-red-100 text-red-800' :
-                          'bg-yellow-100 text-yellow-800'
-                        }`}>
+                        <span className={`px-3 py-1 rounded-full text-sm inline-flex items-center gap-2 ${order.status === 'delivered' ? 'bg-green-100 text-green-800' :
+                            order.status === 'completed' ? 'bg-green-100 text-green-800' :
+                              order.status === 'shipped' ? 'bg-blue-100 text-blue-800' :
+                                order.status === 'confirmed' ? 'bg-indigo-100 text-indigo-800' :
+                                  order.status === 'cancelled' ? 'bg-red-100 text-red-800' :
+                                    'bg-yellow-100 text-yellow-800'
+                          }`}>
                           {order.status === 'delivered' || order.status === 'completed' ? (
                             <>
                               <CheckCircle className="w-4 h-4" /> {t('Hoàn Thành', 'Completed')}
@@ -556,9 +572,8 @@ export default function AdminDashboard() {
                         </span>
                       </td>
                       <td className="px-6 py-4">
-                        <span className={`px-3 py-1 rounded-full text-sm inline-flex items-center gap-2 ${
-                          order.payment_status === 'paid' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
-                        }`}>
+                        <span className={`px-3 py-1 rounded-full text-sm inline-flex items-center gap-2 ${order.payment_status === 'paid' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
+                          }`}>
                           {order.payment_status === 'paid' ? (
                             <>
                               <CheckCircle className="w-4 h-4" /> {t('Đã Thanh Toán', 'Paid')}

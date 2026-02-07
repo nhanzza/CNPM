@@ -66,40 +66,19 @@ export default function EmployeesPage() {
   const fetchEmployees = async () => {
     setLoading(true)
     try {
-      // Mock employees data (endpoint not yet implemented)
-      const mockEmployees: Employee[] = [
-        {
-          id: '1',
-          name: 'Lê Văn C',
-          email: 'levanc@example.com',
-          phone: '0901234567',
-          role: 'cashier' as const,
-          salary: 5000000,
-          status: 'active' as const,
-          created_at: '2025-01-01T00:00:00Z',
-          address: '789 Đường DEF, Quận 1, TP HCM',
-          citizen_id: '079123456789',
-          start_date: '2025-01-01',
-          shift: 'morning' as const
-        },
-        {
-          id: '2',
-          name: 'Phạm Thị D',
-          email: 'phamthid@example.com',
-          phone: '0909876543',
-          role: 'manager' as const,
-          salary: 8000000,
-          status: 'active' as const,
-          created_at: '2025-01-01T00:00:00Z',
-          address: '321 Đường GHI, Quận 3, TP HCM',
-          citizen_id: '079987654321',
-          start_date: '2025-01-01',
-          shift: 'fulltime' as const
-        }
-      ]
-      setEmployees(mockEmployees)
+      const user = authService.getCurrentUser()
+      const storeId = user?.store_id
+      if (!storeId) {
+        setEmployees([])
+        return
+      }
+
+      const res = await apiClient.get('/users', { params: { store_id: storeId } })
+      const data = res.data?.users || res.data || []
+      setEmployees(Array.isArray(data) ? data : [])
     } catch (error) {
       console.error('Failed to fetch employees', error)
+      setEmployees([])
     } finally {
       setLoading(false)
     }
@@ -121,114 +100,110 @@ export default function EmployeesPage() {
       return
     }
 
-    // Create new employee
-    const newEmployee: Employee = {
-      id: `emp_${Date.now()}`,
-      name: formData.name,
-      email: formData.email,
-      phone: formData.phone,
-      role: formData.role,
-      status: 'active',
-      created_at: new Date().toISOString(),
-      address: formData.address,
-      citizen_id: formData.citizen_id,
-      salary: formData.salary ? parseFloat(formData.salary) : undefined,
-      start_date: formData.start_date,
-      shift: formData.shift
-    }
-
-    // Optimistic add: Add to local state immediately
-    setEmployees(prev => [...prev, newEmployee])
-
-    setFormData({
-      name: '',
-      email: '',
-      phone: '',
-      password: '',
-      confirmPassword: '',
-      role: 'cashier',
-      address: '',
-      citizen_id: '',
-      salary: '',
-      start_date: new Date().toISOString().split('T')[0],
-      shift: 'fulltime'
-    })
-    setShowAddForm(false)
-    alert(t('Tạo nhân viên thành công!', 'Employee created successfully!'))
-
-    // Try to sync with API in background (optional)
     try {
       const user = authService.getCurrentUser()
-      const storeId = user?.store_id || '1'
+      const storeId = user?.store_id
+      if (!storeId) {
+        alert(t('Không tìm thấy cửa hàng. Vui lòng đăng nhập lại.', 'Store not found. Please log in again.'))
+        return
+      }
 
-      await apiClient.post('/users', {
+      const res = await apiClient.post('/users', {
         store_id: storeId,
         name: formData.name,
         email: formData.email,
         phone: formData.phone,
         password: formData.password,
         role: formData.role,
-        status: 'active'
+        status: 'active',
+        address: formData.address,
+        citizen_id: formData.citizen_id,
+        salary: formData.salary ? parseFloat(formData.salary) : undefined,
+        start_date: formData.start_date,
+        shift: formData.shift
       })
+
+      const created = res.data?.employee
+      if (created) {
+        setEmployees(prev => [...prev, created])
+      } else {
+        await fetchEmployees()
+      }
+
+      setFormData({
+        name: '',
+        email: '',
+        phone: '',
+        password: '',
+        confirmPassword: '',
+        role: 'cashier',
+        address: '',
+        citizen_id: '',
+        salary: '',
+        start_date: new Date().toISOString().split('T')[0],
+        shift: 'fulltime'
+      })
+      setShowAddForm(false)
+      alert(t('Tạo nhân viên thành công!', 'Employee created successfully!'))
     } catch (error) {
-      console.log('API sync skipped (using local data):', error)
+      console.error('Failed to create employee', error)
+      alert(t('Không thể tạo nhân viên. Vui lòng thử lại.', 'Failed to create employee. Please try again.'))
     }
   }
 
   const handleEditEmployee = async () => {
     if (!selectedEmployee) return
 
-    // Optimistic update: Update local state immediately
-    const updatedEmployee = {
-      ...selectedEmployee,
-      name: formData.name,
-      email: formData.email,
-      phone: formData.phone,
-      role: formData.role,
-      address: formData.address,
-      citizen_id: formData.citizen_id,
-      salary: formData.salary ? parseFloat(formData.salary) : undefined,
-      start_date: formData.start_date,
-      shift: formData.shift
-    }
-
-    setEmployees(prev => prev.map(emp => 
-      emp.id === selectedEmployee.id ? updatedEmployee : emp
-    ))
-
-    setShowEditForm(false)
-    setSelectedEmployee(null)
-    setFormData({
-      name: '',
-      email: '',
-      phone: '',
-      password: '',
-      confirmPassword: '',
-      role: 'cashier',
-      address: '',
-      citizen_id: '',
-      salary: '',
-      start_date: new Date().toISOString().split('T')[0],
-      shift: 'fulltime'
-    })
-    alert(t('Cập nhật nhân viên thành công!', 'Employee updated successfully!'))
-
-    // Try to sync with API in background (optional)
     try {
       const user = authService.getCurrentUser()
-      const storeId = user?.store_id || '1'
+      const storeId = user?.store_id
+      if (!storeId) {
+        alert(t('Không tìm thấy cửa hàng. Vui lòng đăng nhập lại.', 'Store not found. Please log in again.'))
+        return
+      }
 
-      await apiClient.put(`/users/${selectedEmployee.id}`, {
+      const res = await apiClient.put(`/users/${selectedEmployee.id}`, {
         store_id: storeId,
         name: formData.name,
         email: formData.email,
         phone: formData.phone,
         role: formData.role,
-        status: selectedEmployee.status
+        status: selectedEmployee.status,
+        address: formData.address,
+        citizen_id: formData.citizen_id,
+        salary: formData.salary ? parseFloat(formData.salary) : undefined,
+        start_date: formData.start_date,
+        shift: formData.shift
       })
+
+      const updated = res.data?.employee
+      if (updated) {
+        setEmployees(prev => prev.map(emp =>
+          emp.id === selectedEmployee.id ? updated : emp
+        ))
+      } else {
+        await fetchEmployees()
+      }
+
+      setShowEditForm(false)
+      setSelectedEmployee(null)
+      setFormData({
+        name: '',
+        email: '',
+        phone: '',
+        password: '',
+        confirmPassword: '',
+        role: 'cashier',
+        address: '',
+        citizen_id: '',
+        salary: '',
+        start_date: new Date().toISOString().split('T')[0],
+        shift: 'fulltime'
+      })
+      alert(t('Cập nhật nhân viên thành công!', 'Employee updated successfully!'))
     } catch (error) {
-      // Ignore API errors - already updated locally
-      console.log('API sync skipped (using local data):', error)
+      console.error('Failed to update employee', error)
+      alert(t('Không thể cập nhật nhân viên. Vui lòng thử lại.', 'Failed to update employee. Please try again.'))
     }
   }
 
@@ -241,19 +216,23 @@ export default function EmployeesPage() {
       return
     }
 
-    alert(t(`Đặt lại mật khẩu thành công cho ${employeeName}!\n\nMật khẩu mới: ${newPassword}`, `Password reset successfully for ${employeeName}!\n\nNew password: ${newPassword}`))
-
-    // Try to sync with API in background (optional)
     try {
       const user = authService.getCurrentUser()
-      const storeId = user?.store_id || '1'
+      const storeId = user?.store_id
+      if (!storeId) {
+        alert(t('Không tìm thấy cửa hàng. Vui lòng đăng nhập lại.', 'Store not found. Please log in again.'))
+        return
+      }
 
       await apiClient.put(`/users/${employeeId}/password`, {
         store_id: storeId,
         new_password: newPassword
       })
+
+      alert(t(`Đặt lại mật khẩu thành công cho ${employeeName}!\n\nMật khẩu mới: ${newPassword}`, `Password reset successfully for ${employeeName}!\n\nNew password: ${newPassword}`))
     } catch (error) {
-      console.log('API sync skipped (using local data):', error)
+      console.error('Failed to reset password', error)
+      alert(t('Không thể đặt lại mật khẩu. Vui lòng thử lại.', 'Failed to reset password. Please try again.'))
     }
   }
 
@@ -267,22 +246,15 @@ export default function EmployeesPage() {
       return
     }
 
-    // Optimistic update: Update local state immediately
-    setEmployees(prev => prev.map(emp =>
-      emp.id === employee.id ? { ...emp, status: newStatus } : emp
-    ))
-
-    alert(t(
-      `${newStatus === 'active' ? 'Kích hoạt' : 'Cho nghỉ việc'} thành công!`,
-      `${newStatus === 'active' ? 'Reactivation' : 'Deactivation'} successful!`
-    ))
-
-    // Try to sync with API in background (optional)
     try {
       const user = authService.getCurrentUser()
-      const storeId = user?.store_id || '1'
+      const storeId = user?.store_id
+      if (!storeId) {
+        alert(t('Không tìm thấy cửa hàng. Vui lòng đăng nhập lại.', 'Store not found. Please log in again.'))
+        return
+      }
 
-      await apiClient.put(`/users/${employee.id}`, {
+      const res = await apiClient.put(`/users/${employee.id}`, {
         store_id: storeId,
         name: employee.name,
         email: employee.email,
@@ -290,8 +262,23 @@ export default function EmployeesPage() {
         role: employee.role,
         status: newStatus
       })
+
+      const updated = res.data?.employee
+      if (updated) {
+        setEmployees(prev => prev.map(emp =>
+          emp.id === employee.id ? updated : emp
+        ))
+      } else {
+        await fetchEmployees()
+      }
+
+      alert(t(
+        `${newStatus === 'active' ? 'Kích hoạt' : 'Cho nghỉ việc'} thành công!`,
+        `${newStatus === 'active' ? 'Reactivation' : 'Deactivation'} successful!`
+      ))
     } catch (error) {
-      console.log('API sync skipped (using local data):', error)
+      console.error('Failed to update status', error)
+      alert(t('Không thể cập nhật trạng thái. Vui lòng thử lại.', 'Failed to update status. Please try again.'))
     }
   }
 
@@ -303,20 +290,23 @@ export default function EmployeesPage() {
       return
     }
 
-    // Optimistic delete: Remove from UI immediately
-    setEmployees(prev => prev.filter(emp => emp.id !== employeeId))
-    alert(t('Xóa nhân viên thành công!', 'Employee deleted successfully!'))
-
-    // Try to sync with API in background (optional)
     try {
       const user = authService.getCurrentUser()
-      const storeId = user?.store_id || '1'
+      const storeId = user?.store_id
+      if (!storeId) {
+        alert(t('Không tìm thấy cửa hàng. Vui lòng đăng nhập lại.', 'Store not found. Please log in again.'))
+        return
+      }
 
       await apiClient.delete(`/users/${employeeId}`, {
         params: { store_id: storeId }
       })
+
+      setEmployees(prev => prev.filter(emp => emp.id !== employeeId))
+      alert(t('Xóa nhân viên thành công!', 'Employee deleted successfully!'))
     } catch (error) {
-      console.log('API sync skipped (using local data):', error)
+      console.error('Failed to delete employee', error)
+      alert(t('Không thể xóa nhân viên. Vui lòng thử lại.', 'Failed to delete employee. Please try again.'))
     }
   }
 
@@ -640,16 +630,15 @@ export default function EmployeesPage() {
                       )}
                     </td>
                     <td className="px-6 py-4 text-sm">
-                      <span className={`px-2 py-1 rounded text-xs font-medium ${
-                        employee.role === 'owner' ? 'bg-purple-100 text-purple-800' :
-                        employee.role === 'manager' ? 'bg-blue-100 text-blue-800' :
-                        employee.role === 'cashier' ? 'bg-green-100 text-green-800' :
-                        'bg-orange-100 text-orange-800'
-                      }`}>
+                      <span className={`px-2 py-1 rounded text-xs font-medium ${employee.role === 'owner' ? 'bg-purple-100 text-purple-800' :
+                          employee.role === 'manager' ? 'bg-blue-100 text-blue-800' :
+                            employee.role === 'cashier' ? 'bg-green-100 text-green-800' :
+                              'bg-orange-100 text-orange-800'
+                        }`}>
                         {employee.role === 'owner' ? t('Chủ CH', 'Owner') :
-                         employee.role === 'manager' ? t('Quản Lý', 'Manager') :
-                         employee.role === 'cashier' ? t('Thu Ngân', 'Cashier') :
-                         t('NV Kho', 'Warehouse')}
+                          employee.role === 'manager' ? t('Quản Lý', 'Manager') :
+                            employee.role === 'cashier' ? t('Thu Ngân', 'Cashier') :
+                              t('NV Kho', 'Warehouse')}
                       </span>
                     </td>
                     <td className="px-6 py-4 text-sm">{employee.phone || '-'}</td>
@@ -668,11 +657,10 @@ export default function EmployeesPage() {
                       {employee.start_date ? settingsService.formatDate(employee.start_date) : '-'}
                     </td>
                     <td className="px-6 py-4 text-sm">
-                      <span className={`px-2 py-1 rounded text-xs font-medium ${
-                        employee.status === 'active'
+                      <span className={`px-2 py-1 rounded text-xs font-medium ${employee.status === 'active'
                           ? 'bg-green-100 text-green-800'
                           : 'bg-red-100 text-red-800'
-                      }`}>
+                        }`}>
                         {employee.status === 'active' ? t('✓ Đang Làm', '✓ Active') : t('✕ Đã Nghỉ', '✕ Inactive')}
                       </span>
                     </td>
@@ -709,11 +697,10 @@ export default function EmployeesPage() {
                         </button>
                         <button
                           onClick={() => handleToggleStatus(employee)}
-                          className={`px-2 py-1 rounded text-xs text-white ${
-                            employee.status === 'active'
+                          className={`px-2 py-1 rounded text-xs text-white ${employee.status === 'active'
                               ? 'bg-yellow-500 hover:bg-yellow-600'
                               : 'bg-green-500 hover:bg-green-600'
-                          }`}
+                            }`}
                         >
                           {employee.status === 'active' ? t('Cho Nghỉ', 'Deactivate') : t('Kích Hoạt', 'Activate')}
                         </button>

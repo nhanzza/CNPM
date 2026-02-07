@@ -29,27 +29,7 @@ interface StockImport {
 
 export default function InventoryPage() {
   const [products, setProducts] = useState<Product[]>([])
-  const [stockImports, setStockImports] = useState<StockImport[]>(() => {
-    // Load from localStorage on mount
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('stockImports')
-      if (saved) {
-        try {
-          const parsed = JSON.parse(saved)
-          // Create a Map to ensure unique IDs
-          const uniqueImports = new Map<string, StockImport>()
-          parsed.forEach((item: StockImport, index: number) => {
-            const uniqueId = `import_${Date.now()}_${index}_${Math.random().toString(36).substr(2, 9)}`
-            uniqueImports.set(uniqueId, { ...item, id: uniqueId })
-          })
-          return Array.from(uniqueImports.values())
-        } catch (e) {
-          console.error('Failed to parse stockImports from localStorage', e)
-        }
-      }
-    }
-    return []
-  })
+  const [stockImports, setStockImports] = useState<StockImport[]>([])
   const [loading, setLoading] = useState(true)
   const [showImportForm, setShowImportForm] = useState(false)
   const [importData, setImportData] = useState({
@@ -59,16 +39,11 @@ export default function InventoryPage() {
     unit_price: 0,
     notes: ''
   })
-  const [minAlertLevels, setMinAlertLevels] = useState<{[key: string]: number}>({})
+  const [minAlertLevels, setMinAlertLevels] = useState<{ [key: string]: number }>({})
   const [settings] = useState(settingsService.getSettings())
   const t = (vi: string, en: string) => (settings.language === 'en' ? en : vi)
 
-  // Save stockImports to localStorage whenever it changes
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('stockImports', JSON.stringify(stockImports))
-    }
-  }, [stockImports])
+
 
   useEffect(() => {
     fetchData()
@@ -85,23 +60,23 @@ export default function InventoryPage() {
       })
 
       const allProducts = productsRes.data.products || productsRes.data || []
-      
+
       // Apply optimistic quantity updates from localStorage
-      const optimisticUpdates = typeof window !== 'undefined' 
+      const optimisticUpdates = typeof window !== 'undefined'
         ? JSON.parse(localStorage.getItem('productQuantityUpdates') || '{}')
         : {}
-      
+
       const updatedProducts = allProducts.map((p: Product) => ({
         ...p,
-        quantity_in_stock: optimisticUpdates[p.id] !== undefined 
-          ? optimisticUpdates[p.id] 
+        quantity_in_stock: optimisticUpdates[p.id] !== undefined
+          ? optimisticUpdates[p.id]
           : p.quantity_in_stock
       }))
-      
+
       setProducts(updatedProducts)
 
       // Initialize min alert levels
-      const levels: {[key: string]: number} = {}
+      const levels: { [key: string]: number } = {}
       allProducts.forEach((p: Product) => {
         levels[p.id] = p.min_quantity_alert || 10
       })
@@ -145,8 +120,8 @@ export default function InventoryPage() {
       }
 
       // Optimistically update the product quantity in local state
-      setProducts(prev => prev.map(p => 
-        p.id === importData.product_id 
+      setProducts(prev => prev.map(p =>
+        p.id === importData.product_id
           ? { ...p, quantity_in_stock: newQuantity }
           : p
       ))
@@ -188,7 +163,7 @@ export default function InventoryPage() {
       })
       setShowImportForm(false)
       alert(t('Nhập hàng thành công!', 'Stock imported successfully!'))
-      
+
       // Only refetch if API update succeeded, otherwise keep optimistic update
       if (apiUpdateSucceeded) {
         await fetchData()
@@ -221,7 +196,7 @@ export default function InventoryPage() {
     <div className="p-6 max-w-7xl mx-auto">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-bold">{t('Quản Lý Tồn Kho', 'Inventory Management')}</h1>
-        <Button 
+        <Button
           onClick={() => setShowImportForm(!showImportForm)}
           size="md"
           className="rounded-full px-6 py-2.5"

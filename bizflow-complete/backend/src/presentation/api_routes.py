@@ -5,7 +5,7 @@ from typing import List, Optional
 from ..application.business_logic import (
     AuthService, ProductService, OrderService, CustomerService,
     DebtService, ReportService, DraftOrderService, AccountingService,
-    MOCK_ORDERS_DB, MOCK_USERS_DB
+    MOCK_ORDERS_DB, MOCK_USERS_DB, MOCK_EMPLOYEES_DB
 )
 from ..application.dtos import (
     LoginRequest, LoginResponse, UserResponse, RegisterRequest,
@@ -282,36 +282,109 @@ async def list_users(
 ):
     """List all users/employees for store"""
     try:
-        # Mock users data - in a real app, would query database
-        users = [
-            {
-                "id": "emp_001",
-                "store_id": store_id,
-                "email": "employee1@bizflow.com",
-                "full_name": "Nguyễn Văn Nhân Viên",
-                "phone": "0912345678",
-                "role": "employee",
-                "status": "active",
-                "created_at": "2024-01-01",
-            },
-            {
-                "id": "emp_002",
-                "store_id": store_id,
-                "email": "employee2@bizflow.com",
-                "full_name": "Trần Thị Nhân Viên",
-                "phone": "0987654321",
-                "role": "employee",
-                "status": "active",
-                "created_at": "2024-01-05",
-            }
-        ]
+        users = MOCK_EMPLOYEES_DB.get(store_id, [])
+        users = users[skip:skip + limit]
         print(f"DEBUG: Returning {len(users)} users for store {store_id}")
-        return users
+        return {"users": users, "total": len(users)}
     except Exception as e:
         print(f"ERROR in list_users: {str(e)}")
         import traceback
         traceback.print_exc()
-        return []
+        return {"users": [], "total": 0}
+
+
+@router.post("/users", tags=["Users"])
+async def create_user(payload: dict = Body(...)):
+    """Create new employee for store"""
+    store_id = payload.get("store_id")
+    if not store_id:
+        raise HTTPException(status_code=400, detail="store_id is required")
+
+    email = payload.get("email")
+    name = payload.get("name") or payload.get("full_name")
+    if not email or not name:
+        raise HTTPException(status_code=400, detail="name and email are required")
+
+    employees = MOCK_EMPLOYEES_DB.setdefault(store_id, [])
+    if any(u.get("email") == email for u in employees):
+        raise HTTPException(status_code=400, detail="Email already exists")
+
+    employee_id = f"emp_{len(employees) + 1:03d}"
+    employee = {
+        "id": employee_id,
+        "store_id": store_id,
+        "name": name,
+        "email": email,
+        "phone": payload.get("phone"),
+        "role": payload.get("role", "employee"),
+        "status": payload.get("status", "active"),
+        "address": payload.get("address"),
+        "citizen_id": payload.get("citizen_id"),
+        "salary": payload.get("salary"),
+        "start_date": payload.get("start_date"),
+        "shift": payload.get("shift"),
+        "created_at": datetime.now().isoformat()
+    }
+    employees.append(employee)
+    return {"message": "Employee created", "employee": employee}
+
+
+@router.put("/users/{user_id}", tags=["Users"])
+async def update_user(user_id: str, payload: dict = Body(...)):
+    """Update employee info"""
+    store_id = payload.get("store_id")
+    if not store_id:
+        raise HTTPException(status_code=400, detail="store_id is required")
+
+    employees = MOCK_EMPLOYEES_DB.get(store_id, [])
+    for idx, user in enumerate(employees):
+        if user.get("id") == user_id:
+            updated = {
+                **user,
+                "name": payload.get("name", user.get("name")),
+                "email": payload.get("email", user.get("email")),
+                "phone": payload.get("phone", user.get("phone")),
+                "role": payload.get("role", user.get("role")),
+                "status": payload.get("status", user.get("status")),
+                "address": payload.get("address", user.get("address")),
+                "citizen_id": payload.get("citizen_id", user.get("citizen_id")),
+                "salary": payload.get("salary", user.get("salary")),
+                "start_date": payload.get("start_date", user.get("start_date")),
+                "shift": payload.get("shift", user.get("shift"))
+            }
+            employees[idx] = updated
+            return {"message": "Employee updated", "employee": updated}
+
+    raise HTTPException(status_code=404, detail="Employee not found")
+
+
+@router.delete("/users/{user_id}", tags=["Users"])
+async def delete_user(
+    user_id: str,
+    store_id: str = Query(...)
+):
+    """Delete employee"""
+    employees = MOCK_EMPLOYEES_DB.get(store_id, [])
+    for idx, user in enumerate(employees):
+        if user.get("id") == user_id:
+            employees.pop(idx)
+            return {"message": "Employee deleted"}
+
+    raise HTTPException(status_code=404, detail="Employee not found")
+
+
+@router.put("/users/{user_id}/password", tags=["Users"])
+async def reset_user_password(user_id: str, payload: dict = Body(...)):
+    """Reset employee password (mock)"""
+    store_id = payload.get("store_id")
+    if not store_id:
+        raise HTTPException(status_code=400, detail="store_id is required")
+
+    employees = MOCK_EMPLOYEES_DB.get(store_id, [])
+    if any(user.get("id") == user_id for user in employees):
+        return {"message": "Password reset"}
+
+    raise HTTPException(status_code=404, detail="Employee not found")
 
 @router.put("/products/{product_id}", tags=["Products"])
 async def update_product(
