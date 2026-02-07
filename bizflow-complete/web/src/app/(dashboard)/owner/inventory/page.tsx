@@ -12,6 +12,10 @@ interface Product {
   name: string
   sku: string
   price: number
+  cost?: number
+  category?: string
+  description?: string
+  barcode?: string
   quantity_in_stock: number
   unit_of_measure: string
   min_quantity_alert?: number
@@ -30,6 +34,7 @@ interface StockImport {
 export default function InventoryPage() {
   const [products, setProducts] = useState<Product[]>([])
   const [stockImports, setStockImports] = useState<StockImport[]>([])
+  const [importsHydrated, setImportsHydrated] = useState(false)
   const [loading, setLoading] = useState(true)
   const [showImportForm, setShowImportForm] = useState(false)
   const [importData, setImportData] = useState({
@@ -43,17 +48,47 @@ export default function InventoryPage() {
   const [settings] = useState(settingsService.getSettings())
   const t = (vi: string, en: string) => (settings.language === 'en' ? en : vi)
 
+  const getStoreId = () => {
+    const user = authService.getCurrentUser()
+    return user?.store_id || '1'
+  }
 
+  const loadStockImports = (storeId: string) => {
+    if (typeof window === 'undefined') return
+    const key = `bizflow:stockImports:${storeId}`
+    const raw = localStorage.getItem(key)
+    if (!raw) return
+    try {
+      const parsed = JSON.parse(raw)
+      if (Array.isArray(parsed)) {
+        setStockImports(parsed)
+      }
+    } catch (error) {
+      console.warn('Failed to parse stock import history', error)
+    }
+  }
+
+  const saveStockImports = (storeId: string, imports: StockImport[]) => {
+    if (typeof window === 'undefined') return
+    const key = `bizflow:stockImports:${storeId}`
+    localStorage.setItem(key, JSON.stringify(imports))
+  }
 
   useEffect(() => {
+    loadStockImports(getStoreId())
+    setImportsHydrated(true)
     fetchData()
   }, [])
+
+  useEffect(() => {
+    if (!importsHydrated) return
+    saveStockImports(getStoreId(), stockImports)
+  }, [importsHydrated, stockImports])
 
   const fetchData = async () => {
     setLoading(true)
     try {
-      const user = authService.getCurrentUser()
-      const storeId = user?.store_id || '1'
+      const storeId = getStoreId()
 
       const productsRes = await apiClient.get('/products', {
         params: { store_id: storeId }
@@ -61,19 +96,7 @@ export default function InventoryPage() {
 
       const allProducts = productsRes.data.products || productsRes.data || []
 
-      // Apply optimistic quantity updates from localStorage
-      const optimisticUpdates = typeof window !== 'undefined'
-        ? JSON.parse(localStorage.getItem('productQuantityUpdates') || '{}')
-        : {}
-
-      const updatedProducts = allProducts.map((p: Product) => ({
-        ...p,
-        quantity_in_stock: optimisticUpdates[p.id] !== undefined
-          ? optimisticUpdates[p.id]
-          : p.quantity_in_stock
-      }))
-
-      setProducts(updatedProducts)
+      setProducts(allProducts)
 
       // Initialize min alert levels
       const levels: { [key: string]: number } = {}
@@ -95,8 +118,7 @@ export default function InventoryPage() {
     }
 
     try {
-      const user = authService.getCurrentUser()
-      const storeId = user?.store_id || '1'
+      const storeId = getStoreId()
 
       // Update product quantity
       const selectedProduct = products.find(p => p.id === importData.product_id)
@@ -111,14 +133,6 @@ export default function InventoryPage() {
       console.log('Import quantity:', importData.quantity)
       console.log('New quantity:', newQuantity)
 
-      // Save optimistic update to localStorage for persistence
-      if (typeof window !== 'undefined') {
-        const optimisticUpdates = JSON.parse(localStorage.getItem('productQuantityUpdates') || '{}')
-        optimisticUpdates[importData.product_id] = newQuantity
-        localStorage.setItem('productQuantityUpdates', JSON.stringify(optimisticUpdates))
-        console.log('Saved to localStorage:', optimisticUpdates)
-      }
-
       // Optimistically update the product quantity in local state
       setProducts(prev => prev.map(p =>
         p.id === importData.product_id
@@ -126,20 +140,27 @@ export default function InventoryPage() {
           : p
       ))
 
-      // Try to update on server, but don't block if it fails (checkpoint doesn't have PUT products endpoint)
+      // Update on server so inventory stays consistent across pages
       let apiUpdateSucceeded = false
       try {
         await apiClient.put(`/products/${importData.product_id}`, {
-          store_id: storeId,
           name: selectedProduct.name,
           sku: selectedProduct.sku,
+          category: selectedProduct.category || '',
           price: selectedProduct.price,
+          cost: selectedProduct.cost || 0,
+          description: selectedProduct.description,
+          barcode: selectedProduct.barcode,
           quantity_in_stock: newQuantity,
-          unit_of_measure: selectedProduct.unit_of_measure
+          unit_of_measure: selectedProduct.unit_of_measure,
+          min_quantity_alert: selectedProduct.min_quantity_alert || 0
+        }, {
+          params: { store_id: storeId }
         })
         apiUpdateSucceeded = true
       } catch (apiError) {
-        console.warn('Product update API not available (checkpoint limitation), using optimistic update only')
+        console.warn('Product update API failed, reverting to backend data')
+        await fetchData()
       }
 
       // Record import log
@@ -152,7 +173,7 @@ export default function InventoryPage() {
         import_date: new Date().toISOString(),
         notes: importData.notes
       }
-      setStockImports([importLog, ...stockImports])
+      setStockImports(prev => [importLog, ...prev])
 
       setImportData({
         product_id: '',

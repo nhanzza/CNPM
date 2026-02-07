@@ -146,7 +146,8 @@ export default function CircularBookkeeping() {
           // Cost of goods sold
           const costOfGoods = (order.items || []).reduce((sum: number, item: any) => {
             const product = products.find((p: any) => p.id === item.product_id)
-            return sum + (product ? product.price * 0.6 * item.quantity : 0)
+            const unitCost = typeof product?.cost === 'number' ? product.cost : 0
+            return sum + (unitCost * item.quantity)
           }, 0)
 
           if (costOfGoods > 0) {
